@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum LibraryType {
+  MOVIES
+  SERIES
+}
+
+model Library {
+  id          String      @id @default(cuid())
+  name        String
+  path        String      @unique
+  type        LibraryType
+
+  movies      Movie[]
+  series      Series[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Movie {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  year        Int?
+
+  poster      String?
+  backdrop    String?
+
+  filePath    String      @unique
+  duration    Int?
+
+  libraryId   String
+  library     Library     @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([libraryId])
+  @@index([title])
+  @@index([year])
+}
+
+model Series {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  year        Int?
+
+  poster      String?
+  backdrop    String?
+
+  libraryId   String
+  library     Library     @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  seasons     Season[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([libraryId])
+  @@index([title])
+  @@index([year])
+}
+
+model Season {
+  id          String      @id @default(cuid())
+  number      Int
+  title       String?
+
+  seriesId    String
+  series      Series      @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  episodes    Episode[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([seriesId, number])
+}
+
+model Episode {
+  id          String      @id @default(cuid())
+  number      Int
+  title       String
+  description String?
+
+  thumbnail   String?
+  filePath    String      @unique
+  duration    Int?
+
+  seasonId    String
+  season      Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  progress    Progress?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([seasonId, number])
+}
+
+model Progress {
+  id          String      @id @default(cuid())
+  position    Int         @default(0)
+  completed   Boolean     @default(false)
+
+  episodeId   String      @unique
+  episode     Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  updatedAt   DateTime    @updatedAt
+}
