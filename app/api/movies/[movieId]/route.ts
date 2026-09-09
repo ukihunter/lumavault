@@ -1,4 +1,6 @@
+
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/db/prisma";
 
 type RouteContext = {
@@ -14,42 +16,49 @@ export async function GET(
   try {
     const { movieId } = await params;
 
-    const movie = await prisma.movie.findUnique({
-      where: {
-        id: movieId,
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        year: true,
-        poster: true,
-        backdrop: true,
-        duration: true,
-
-        library: {
-          select: {
-            id: true,
-            name: true,
-            path: true,
-            type: true,
-          },
+    const movie =
+      await prisma.movie.findUnique({
+        where: {
+          id: movieId,
         },
 
-        mediaSource: {
-          select: {
-            id: true,
-            type: true,
-            filePath: true,
-            archivePath: true,
-            entryPath: true,
-          },
-        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          overview: true,
+          year: true,
 
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+          poster: true,
+          backdrop: true,
+
+          voteAverage: true,
+
+          duration: true,
+
+          library: {
+            select: {
+              id: true,
+              name: true,
+              path: true,
+              type: true,
+            },
+          },
+
+          mediaSource: {
+            select: {
+              id: true,
+              type: true,
+              filePath: true,
+              archivePath: true,
+              entryPath: true,
+            },
+          },
+
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
 
     if (!movie) {
       return NextResponse.json(
@@ -80,3 +89,4 @@ export async function GET(
     );
   }
 }
+
