@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 
@@ -9,14 +10,22 @@ export async function GET() {
           title: "asc",
         },
       ],
+
       select: {
         id: true,
         title: true,
         description: true,
         year: true,
+
+        // TMDB metadata
         poster: true,
         backdrop: true,
+        voteAverage: true,
+
         duration: true,
+
+        // Used by RecentlyAdded
+        createdAt: true,
 
         library: {
           select: {
@@ -43,7 +52,10 @@ export async function GET() {
       count: movies.length,
     });
   } catch (error) {
-    console.error("GET /api/movies error:", error);
+    console.error(
+      "GET /api/movies error:",
+      error,
+    );
 
     return NextResponse.json(
       {

@@ -1,99 +1,58 @@
-function normalizeTitle(value: string) {
-  return value
+// lib/metadata/matcher.ts
+
+function normalizeTitle(title: string) {
+  return title
     .toLowerCase()
-    .replace(/&/g, "and")
+    .replace(/\(\d{4}\)/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function tokenize(value: string) {
-  return new Set(normalizeTitle(value).split(" "));
-}
-
-function tokenSimilarity(
+function similarity(
   a: string,
   b: string,
 ) {
-  const aTokens = tokenize(a);
-  const bTokens = tokenize(b);
+  const first = normalizeTitle(a);
+  const second = normalizeTitle(b);
 
-  if (!aTokens.size || !bTokens.size) {
-    return 0;
-  }
-
-  let intersection = 0;
-
-  for (const token of aTokens) {
-    if (bTokens.has(token)) {
-      intersection++;
-    }
-  }
-
-  const union = new Set([
-    ...aTokens,
-    ...bTokens,
-  ]).size;
-
-  return intersection / union;
-}
-
-export function calculateTitleScore(
-  localTitle: string,
-  candidateTitle: string,
-) {
-  const local = normalizeTitle(localTitle);
-  const candidate = normalizeTitle(candidateTitle);
-
-  if (local === candidate) {
+  if (first === second) {
     return 1;
   }
 
-  if (
-    candidate.includes(local) ||
-    local.includes(candidate)
-  ) {
-    return 0.9;
-  }
+  const firstWords = new Set(first.split(" "));
+  const secondWords = new Set(second.split(" "));
 
-  return tokenSimilarity(local, candidate);
+  const intersection = [...firstWords].filter(
+    (word) => secondWords.has(word),
+  );
+
+  const union = new Set([
+    ...firstWords,
+    ...secondWords,
+  ]);
+
+  return intersection.length / union.size;
 }
 
-export function calculateMatchScore({
-  localTitle,
-  localYear,
-  candidateTitle,
-  candidateYear,
-}: {
-  localTitle: string;
-  localYear?: number | null;
-  candidateTitle: string;
-  candidateYear?: number | null;
-}) {
-  let score = calculateTitleScore(
+export function calculateMatchScore(
+  localTitle: string,
+  localYear: number | null | undefined,
+  tmdbTitle: string,
+  tmdbYear: number | null | undefined,
+) {
+  const titleScore = similarity(
     localTitle,
-    candidateTitle,
+    tmdbTitle,
   );
 
   if (
     localYear &&
-    candidateYear
+    tmdbYear &&
+    localYear === tmdbYear
   ) {
-    const difference = Math.abs(
-      localYear - candidateYear,
-    );
-
-    if (difference === 0) {
-      score += 0.15;
-    } else if (difference === 1) {
-      score += 0.05;
-    } else if (difference >= 3) {
-      score -= 0.2;
-    }
+    return Math.min(1, titleScore + 0.15);
   }
 
-  return Math.max(
-    0,
-    Math.min(1, score),
-  );
+  return titleScore;
 }

@@ -5,8 +5,8 @@ import { prisma } from "@/lib/db/prisma";
 import {
   getMovieDetails,
   getTvDetails,
-  tmdbBackdropUrl,
-  tmdbPosterUrl,
+  tmdbBackdrop,
+  tmdbPoster,
 } from "@/lib/metadata/tmdb";
 
 export const runtime = "nodejs";
@@ -67,6 +67,23 @@ export async function POST(
           body.tmdbId,
         );
 
+      const existing =
+        await prisma.movie.findUnique({
+          where: {
+            id: body.id,
+          },
+        });
+
+      if (!existing) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Movie not found",
+          },
+          { status: 404 },
+        );
+      }
+
       const year =
         movie.release_date
           ? Number(
@@ -87,19 +104,19 @@ export async function POST(
             title: movie.title,
             year,
             overview:
-              movie.overview || null,
+              movie.overview ||
+              null,
             poster:
-              tmdbPosterUrl(
+              tmdbPoster(
                 movie.poster_path,
-                "w500",
               ),
             backdrop:
-              tmdbBackdropUrl(
+              tmdbBackdrop(
                 movie.backdrop_path,
-                "original",
               ),
             voteAverage:
-              movie.vote_average,
+              movie.vote_average ??
+              null,
           },
         });
 
@@ -113,6 +130,23 @@ export async function POST(
       await getTvDetails(
         body.tmdbId,
       );
+
+    const existing =
+      await prisma.series.findUnique({
+        where: {
+          id: body.id,
+        },
+      });
+
+    if (!existing) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Series not found",
+        },
+        { status: 404 },
+      );
+    }
 
     const year =
       series.first_air_date
@@ -134,19 +168,19 @@ export async function POST(
           title: series.name,
           year,
           overview:
-            series.overview || null,
+            series.overview ||
+            null,
           poster:
-            tmdbPosterUrl(
+            tmdbPoster(
               series.poster_path,
-              "w500",
             ),
           backdrop:
-            tmdbBackdropUrl(
+            tmdbBackdrop(
               series.backdrop_path,
-              "original",
             ),
           voteAverage:
-            series.vote_average,
+            series.vote_average ??
+            null,
         },
       });
 

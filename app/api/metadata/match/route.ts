@@ -1,65 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/db/prisma";
-
 import {
   matchMovie,
   matchSeries,
 } from "@/lib/metadata/match";
 
-const AUTO_MATCH_THRESHOLD = 0.82;
-
-export const runtime = "nodejs";
-
 export async function POST(
   request: NextRequest,
 ) {
   try {
-    const body =
-      await request.json();
+    const body = await request.json();
 
-    const type = body.type;
-    const id = body.id;
+    const {
+      type,
+      id,
+    }: {
+      type?: "movie" | "series";
+      id?: string;
+    } = body;
 
-    if (
-      type !== "movie" &&
-      type !== "series"
-    ) {
+    if (!type || !id) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "type must be movie or series",
-        },
-        { status: 400 },
-      );
-    }
-
-    if (
-      typeof id !== "string" ||
-      !id
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "id is required",
+          error: "type and id are required",
         },
         { status: 400 },
       );
     }
 
     if (type === "movie") {
-      const movie =
-        await prisma.movie.findUnique({
-          where: {
-            id,
-          },
-          select: {
-            id: true,
-            title: true,
-            year: true,
-          },
-        });
+      const movie = await prisma.movie.findUnique({
+        where: { id },
+      });
 
       if (!movie) {
         return NextResponse.json(
@@ -71,68 +45,41 @@ export async function POST(
         );
       }
 
-      const match =
-        await matchMovie(
-          movie.title,
-          movie.year,
-        );
+      const metadata = await matchMovie(
+        movie.title,
+        movie.year,
+      );
 
-      if (!match) {
+      if (!metadata) {
         return NextResponse.json({
-          success: true,
+          success: false,
           matched: false,
-          candidates: [],
+          error: "No TMDB match found",
         });
       }
 
-      if (
-        match.score <
-        AUTO_MATCH_THRESHOLD
-      ) {
-        return NextResponse.json({
-          success: true,
-          matched: false,
-          requiresConfirmation: true,
-          match,
-        });
-      }
-
-      const updated =
-        await prisma.movie.update({
-          where: {
-            id: movie.id,
-          },
-          data: {
-            tmdbId: match.tmdbId,
-            title: match.title,
-            year: match.year,
-            overview: match.overview,
-            poster: match.poster,
-            backdrop: match.backdrop,
-            voteAverage:
-              match.voteAverage,
-          },
-        });
+      const updated = await prisma.movie.update({
+        where: { id: movie.id },
+        data: {
+          tmdbId: metadata.tmdbId,
+          overview: metadata.overview,
+          poster: metadata.poster,
+          backdrop: metadata.backdrop,
+          voteAverage: metadata.voteAverage,
+        },
+      });
 
       return NextResponse.json({
         success: true,
         matched: true,
-        score: match.score,
-        media: updated,
+        score: metadata.score,
+        movie: updated,
       });
     }
 
-    const series =
-      await prisma.series.findUnique({
-        where: {
-          id,
-        },
-        select: {
-          id: true,
-          title: true,
-          year: true,
-        },
-      });
+    const series = await prisma.series.findUnique({
+      where: { id },
+    });
 
     if (!series) {
       return NextResponse.json(
@@ -144,68 +91,46 @@ export async function POST(
       );
     }
 
-    const match =
-      await matchSeries(
-        series.title,
-        series.year,
-      );
+    const metadata = await matchSeries(
+      series.title,
+      series.year,
+    );
 
-    if (!match) {
+    if (!metadata) {
       return NextResponse.json({
-        success: true,
+        success: false,
         matched: false,
-        candidates: [],
+        error: "No TMDB match found",
       });
     }
 
-    if (
-      match.score <
-      AUTO_MATCH_THRESHOLD
-    ) {
-      return NextResponse.json({
-        success: true,
-        matched: false,
-        requiresConfirmation: true,
-        match,
-      });
-    }
-
-    const updated =
-      await prisma.series.update({
-        where: {
-          id: series.id,
-        },
-        data: {
-          tmdbId: match.tmdbId,
-          title: match.title,
-          year: match.year,
-          overview: match.overview,
-          poster: match.poster,
-          backdrop: match.backdrop,
-          voteAverage:
-            match.voteAverage,
-        },
-      });
+    const updated = await prisma.series.update({
+      where: { id: series.id },
+      data: {
+        tmdbId: metadata.tmdbId,
+        overview: metadata.overview,
+        poster: metadata.poster,
+        backdrop: metadata.backdrop,
+        voteAverage: metadata.voteAverage,
+      },
+    });
 
     return NextResponse.json({
       success: true,
       matched: true,
-      score: match.score,
-      media: updated,
+      score: metadata.score,
+      series: updated,
     });
   } catch (error) {
     console.error(
-      "TMDB matching failed:",
+      "POST /api/metadata/match:",
       error,
     );
 
     return NextResponse.json(
       {
         success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "TMDB matching failed",
+        error: "Failed to match metadata",
       },
       { status: 500 },
     );

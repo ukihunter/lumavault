@@ -14,7 +14,8 @@ export async function GET() {
         year: true,
         poster: true,
         backdrop: true,
-
+voteAverage: true,
+createdAt: true,
         library: {
           select: {
             id: true,

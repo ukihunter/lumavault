@@ -1,39 +1,28 @@
+
 import { NextRequest, NextResponse } from "next/server";
 
 import {
   searchMovies,
   searchTv,
-  tmdbBackdropUrl,
-  tmdbPosterUrl,
+  tmdbBackdrop,
+  tmdbPoster,
 } from "@/lib/metadata/tmdb";
 
 export const runtime = "nodejs";
 
-export async function GET(
-  request: NextRequest,
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } =
-      new URL(request.url);
+    const { searchParams } = new URL(request.url);
 
-    const type =
-      searchParams.get("type");
+    const type = searchParams.get("type");
+    const title = searchParams.get("title")?.trim();
+    const yearParam = searchParams.get("year");
 
-    const title =
-      searchParams.get("title")?.trim();
-
-    const yearParam =
-      searchParams.get("year");
-
-    if (
-      type !== "movie" &&
-      type !== "series"
-    ) {
+    if (type !== "movie" && type !== "series") {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "type must be movie or series",
+          error: "type must be movie or series",
         },
         { status: 400 },
       );
@@ -50,99 +39,67 @@ export async function GET(
     }
 
     const year =
-      yearParam &&
-      /^\d{4}$/.test(yearParam)
+      yearParam && /^\d{4}$/.test(yearParam)
         ? Number(yearParam)
         : undefined;
 
+    // Movies
     if (type === "movie") {
-      const results =
-        await searchMovies(
-          title,
-          year,
-        );
+      const results = await searchMovies(title, year);
 
       return NextResponse.json({
         success: true,
-        results: results.map(
-          (movie) => ({
-            tmdbId: movie.id,
-            title: movie.title,
-            originalTitle:
-              movie.original_title,
-            year:
-              movie.release_date
-                ? Number(
-                    movie.release_date.slice(
-                      0,
-                      4,
-                    ),
-                  )
-                : null,
-            overview:
-              movie.overview || null,
-            poster:
-              tmdbPosterUrl(
-                movie.poster_path,
-                "w500",
-              ),
-            backdrop:
-              tmdbBackdropUrl(
-                movie.backdrop_path,
-                "w780",
-              ),
-            voteAverage:
-              movie.vote_average,
-          }),
-        ),
+        results: results.map((movie) => ({
+          tmdbId: movie.id,
+          title: movie.title,
+
+          // Your current TmdbMovie type does not expose
+          // original_title, so use the available title.
+          originalTitle: movie.title,
+
+          year: movie.release_date
+            ? Number(movie.release_date.slice(0, 4))
+            : null,
+
+          overview: movie.overview || null,
+
+          poster: tmdbPoster(movie.poster_path),
+
+          backdrop: tmdbBackdrop(movie.backdrop_path),
+
+          voteAverage: movie.vote_average ?? null,
+        })),
       });
     }
 
-    const results =
-      await searchTv(
-        title,
-        year,
-      );
+    // TV Series
+    const results = await searchTv(title, year);
 
     return NextResponse.json({
       success: true,
-      results: results.map(
-        (series) => ({
-          tmdbId: series.id,
-          title: series.name,
-          originalTitle:
-            series.original_name,
-          year:
-            series.first_air_date
-              ? Number(
-                  series.first_air_date.slice(
-                    0,
-                    4,
-                  ),
-                )
-              : null,
-          overview:
-            series.overview || null,
-          poster:
-            tmdbPosterUrl(
-              series.poster_path,
-              "w500",
-            ),
-          backdrop:
-            tmdbBackdropUrl(
-              series.backdrop_path,
-              "w780",
-            ),
-          voteAverage:
-            series.vote_average,
-        }),
-      ),
+      results: results.map((series) => ({
+        tmdbId: series.id,
+        title: series.name,
+
+        // Your current TmdbTv type does not expose
+        // original_name, so use the available name.
+        originalTitle: series.name,
+
+        year: series.first_air_date
+          ? Number(series.first_air_date.slice(0, 4))
+          : null,
+
+        overview: series.overview || null,
+
+        poster: tmdbPoster(series.poster_path),
+
+        backdrop: tmdbBackdrop(series.backdrop_path),
+
+        voteAverage: series.vote_average ?? null,
+      })),
     });
   } catch (error) {
-    console.error(
-      "TMDB search failed:",
-      error,
-    );
+    console.error("TMDB search failed:", error);
 
     return NextResponse.json(
       {

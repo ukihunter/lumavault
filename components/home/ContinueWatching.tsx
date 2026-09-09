@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -22,17 +23,14 @@ type ProgressResponse = {
     position: number;
     completed: boolean;
     updatedAt: string;
-
     episode: {
       id: string;
       number: number;
       title: string;
       duration: number | null;
       thumbnail: string | null;
-
       season: {
         number: number;
-
         series: {
           id: string;
           title: string;
@@ -42,7 +40,6 @@ type ProgressResponse = {
       };
     };
   }>;
-
   count?: number;
   error?: string;
 };
@@ -52,13 +49,19 @@ function formatDuration(seconds: number | null) {
     return "--";
   }
 
-  const totalMinutes = Math.max(1, Math.round(seconds / 60));
+  const totalMinutes = Math.max(
+    1,
+    Math.round(seconds / 60),
+  );
 
   if (totalMinutes < 60) {
     return `${totalMinutes} min`;
   }
 
-  const hours = Math.floor(totalMinutes / 60);
+  const hours = Math.floor(
+    totalMinutes / 60,
+  );
+
   const minutes = totalMinutes % 60;
 
   if (minutes === 0) {
@@ -89,7 +92,10 @@ function formatRemaining(
     return `${totalMinutes} min left`;
   }
 
-  const hours = Math.floor(totalMinutes / 60);
+  const hours = Math.floor(
+    totalMinutes / 60,
+  );
+
   const minutes = totalMinutes % 60;
 
   if (minutes === 0) {
@@ -116,17 +122,32 @@ function getProgress(
   );
 }
 
+/**
+ * Pick the best image available.
+ *
+ * Priority:
+ * 1. Episode thumbnail
+ * 2. Series backdrop
+ * 3. Series poster
+ */
 function getImage(
   thumbnail: string | null,
   backdrop: string | null,
   poster: string | null,
 ) {
-  return (
-    thumbnail ||
-    backdrop ||
-    poster ||
-    null
-  );
+  if (thumbnail) {
+    return thumbnail;
+  }
+
+  if (backdrop) {
+    return backdrop;
+  }
+
+  if (poster) {
+    return poster;
+  }
+
+  return null;
 }
 
 export function ContinueWatching() {
@@ -184,6 +205,15 @@ export function ContinueWatching() {
               const duration =
                 episode.duration;
 
+              const image =
+                getImage(
+                  episode.thumbnail,
+                  episode.season.series
+                    .backdrop,
+                  episode.season.series
+                    .poster,
+                );
+
               return {
                 id: episode.id,
 
@@ -206,22 +236,8 @@ export function ContinueWatching() {
                     episode.title
                   }`,
 
-                image: getImage(
-                  episode.thumbnail,
-                  episode.season.series
-                    .backdrop,
-                  episode.season.series
-                    .poster,
-                ),
+                image,
 
-                /*
-                 * If duration is known,
-                 * calculate the real percentage.
-                 *
-                 * If duration is unknown,
-                 * keep 0 rather than inventing
-                 * a percentage.
-                 */
                 progress:
                   duration
                     ? getProgress(
@@ -235,11 +251,6 @@ export function ContinueWatching() {
                     duration,
                   ),
 
-                /*
-                 * When duration isn't known,
-                 * show how much has actually
-                 * been watched.
-                 */
                 remaining:
                   duration
                     ? formatRemaining(
@@ -260,6 +271,7 @@ export function ContinueWatching() {
         setError(
           "Failed to load continue watching",
         );
+
         setItems([]);
       } finally {
         setLoading(false);
@@ -270,12 +282,12 @@ export function ContinueWatching() {
     loadContinueWatching();
   }, [loadContinueWatching]);
 
-  async function removeItem(id: string) {
+  async function removeItem(
+    id: string,
+  ) {
     const previousItems = items;
 
-    /*
-     * Remove immediately from UI.
-     */
+    // Remove immediately from UI.
     setItems((current) =>
       current.filter(
         (item) => item.id !== id,
@@ -298,7 +310,8 @@ export function ContinueWatching() {
         );
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!data.success) {
         throw new Error(
@@ -312,23 +325,17 @@ export function ContinueWatching() {
         error,
       );
 
-      /*
-       * Restore the card if the
-       * database deletion failed.
-       */
+      // Restore card if deletion failed.
       setItems(previousItems);
     }
   }
 
-  /*
-   * Loading state
-   */
+  // Loading state
   if (loading) {
     return (
       <section className="relative">
         <div className="mb-5">
           <div className="mb-2 h-3 w-40 animate-pulse rounded bg-white/10" />
-
           <div className="h-7 w-56 animate-pulse rounded bg-white/10" />
         </div>
 
@@ -376,19 +383,12 @@ export function ContinueWatching() {
     );
   }
 
-  /*
-   * Error state
-   */
+  // Error state
   if (error) {
     return null;
   }
 
-  /*
-   * Nothing to continue.
-   *
-   * This is expected when there are
-   * no unfinished progress records.
-   */
+  // Nothing to continue
   if (items.length === 0) {
     return null;
   }
@@ -491,8 +491,9 @@ function ContinueCard({
         {item.image ? (
           <Image
             src={item.image}
-            alt={item.title}
+            alt={`${item.title} - ${item.subtitle}`}
             fill
+            priority={false}
             sizes="
               (max-width: 640px) 270px,
               (max-width: 1024px) 310px,
@@ -604,7 +605,6 @@ function ContinueCard({
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-
             onRemove(item.id);
           }}
           className="
@@ -668,3 +668,4 @@ function ContinueCard({
     </article>
   );
 }
+

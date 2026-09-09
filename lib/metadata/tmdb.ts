@@ -1,164 +1,177 @@
-const TMDB_API_BASE = "https://api.themoviedb.org/3";
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
+import "server-only";
+
+const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
 
 const TMDB_TOKEN = process.env.TMDB_API_READ_ACCESS_TOKEN;
 
 if (!TMDB_TOKEN) {
-  throw new Error(
+  console.warn(
     "TMDB_API_READ_ACCESS_TOKEN is not configured.",
   );
 }
 
-type TmdbMovieSearchResult = {
+export type TmdbMovie = {
   id: number;
   title: string;
-  original_title: string;
-  overview: string;
-  release_date: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
-  vote_count: number;
+  original_title?: string;
+  overview?: string | null;
+  release_date?: string | null;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  vote_average?: number | null;
 };
 
-type TmdbTvSearchResult = {
+export type TmdbTv = {
   id: number;
   name: string;
-  original_name: string;
-  overview: string;
-  first_air_date: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
-  vote_count: number;
+  original_name?: string;
+  overview?: string | null;
+  first_air_date?: string | null;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  vote_average?: number | null;
 };
 
-type TmdbSearchResponse<T> = {
+export type TmdbEpisode = {
+  id: number;
+  name: string;
+  overview?: string | null;
+  air_date?: string | null;
+  episode_number: number;
+  season_number: number;
+  still_path?: string | null;
+  vote_average?: number | null;
+  runtime?: number | null;
+};
+
+type TmdbSearchMovieResponse = {
   page: number;
-  results: T[];
+  results: TmdbMovie[];
   total_pages: number;
   total_results: number;
 };
 
-type TmdbMovieDetails = {
-  id: number;
-  title: string;
-  original_title: string;
-  overview: string;
-  release_date: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
+type TmdbSearchTvResponse = {
+  page: number;
+  results: TmdbTv[];
+  total_pages: number;
+  total_results: number;
 };
-
-type TmdbTvDetails = {
-  id: number;
-  name: string;
-  original_name: string;
-  overview: string;
-  first_air_date: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  vote_average: number;
-};
-
-function getHeaders(): HeadersInit {
-  return {
-    Authorization: `Bearer ${TMDB_TOKEN}`,
-    Accept: "application/json",
-  };
-}
 
 async function tmdbFetch<T>(
   path: string,
-  params?: Record<string, string | number | undefined>,
+  params?: Record<
+    string,
+    string | number | undefined
+  >,
 ): Promise<T> {
-  const url = new URL(`${TMDB_API_BASE}${path}`);
+  if (!TMDB_TOKEN) {
+    throw new Error(
+      "TMDB_API_READ_ACCESS_TOKEN is not configured.",
+    );
+  }
+
+  const url = new URL(
+    `${TMDB_BASE_URL}${path}`,
+  );
 
   if (params) {
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(
+      params,
+    )) {
       if (value !== undefined) {
-        url.searchParams.set(key, String(value));
+        url.searchParams.set(
+          key,
+          String(value),
+        );
       }
     }
   }
 
-  const response = await fetch(url, {
-    headers: getHeaders(),
-    cache: "no-store",
-  });
+  const response = await fetch(
+    url.toString(),
+    {
+      headers: {
+        Authorization: `Bearer ${TMDB_TOKEN}`,
+        accept: "application/json",
+      },
+
+      // Metadata does not need to be fetched
+      // repeatedly for every page request.
+      next: {
+        revalidate: 86400,
+      },
+    },
+  );
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
+    const text = await response.text();
 
     throw new Error(
-      `TMDB request failed (${response.status}): ${body || response.statusText}`,
+      `TMDB request failed (${response.status}): ${text}`,
     );
   }
 
   return response.json() as Promise<T>;
 }
 
-export function tmdbPosterUrl(
-  path: string | null | undefined,
-  size: "w185" | "w342" | "w500" | "w780" | "original" = "w500",
-) {
-  if (!path) {
-    return null;
-  }
-
-  return `${TMDB_IMAGE_BASE}/${size}${path}`;
-}
-
-export function tmdbBackdropUrl(
-  path: string | null | undefined,
-  size: "w780" | "w1280" | "original" = "original",
-) {
-  if (!path) {
-    return null;
-  }
-
-  return `${TMDB_IMAGE_BASE}/${size}${path}`;
-}
+/* -------------------------------------------------------------------------- */
+/* Search                                                                     */
+/* -------------------------------------------------------------------------- */
 
 export async function searchMovies(
-  title: string,
+  query: string,
   year?: number | null,
-) {
-  const data = await tmdbFetch<
-    TmdbSearchResponse<TmdbMovieSearchResult>
-  >("/search/movie", {
-    query: title,
-    year: year ?? undefined,
-    include_adult: "false",
-    language: "en-US",
-    page: 1,
-  });
+): Promise<TmdbMovie[]> {
+  const response =
+    await tmdbFetch<TmdbSearchMovieResponse>(
+      "/search/movie",
+      {
+        query,
+        year:
+          year && year > 0
+            ? year
+            : undefined,
+        language: "en-US",
+        page: 1,
+        include_adult: "false",
+      },
+    );
 
-  return data.results;
+  return response.results;
 }
 
 export async function searchTv(
-  title: string,
+  query: string,
   year?: number | null,
-) {
-  const data = await tmdbFetch<
-    TmdbSearchResponse<TmdbTvSearchResult>
-  >("/search/tv", {
-    query: title,
-    first_air_date_year: year ?? undefined,
-    include_adult: "false",
-    language: "en-US",
-    page: 1,
-  });
+): Promise<TmdbTv[]> {
+  const response =
+    await tmdbFetch<TmdbSearchTvResponse>(
+      "/search/tv",
+      {
+        query,
+        first_air_date_year:
+          year && year > 0
+            ? year
+            : undefined,
+        language: "en-US",
+        page: 1,
+        include_adult: "false",
+      },
+    );
 
-  return data.results;
+  return response.results;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Details                                                                    */
+/* -------------------------------------------------------------------------- */
 
 export async function getMovieDetails(
   tmdbId: number,
-) {
-  return tmdbFetch<TmdbMovieDetails>(
+): Promise<TmdbMovie> {
+  return tmdbFetch<TmdbMovie>(
     `/movie/${tmdbId}`,
     {
       language: "en-US",
@@ -168,11 +181,61 @@ export async function getMovieDetails(
 
 export async function getTvDetails(
   tmdbId: number,
-) {
-  return tmdbFetch<TmdbTvDetails>(
+): Promise<TmdbTv> {
+  return tmdbFetch<TmdbTv>(
     `/tv/${tmdbId}`,
     {
       language: "en-US",
     },
   );
+}
+
+export async function getTvEpisodeDetails(
+  tmdbId: number,
+  seasonNumber: number,
+  episodeNumber: number,
+): Promise<TmdbEpisode> {
+  return tmdbFetch<TmdbEpisode>(
+    `/tv/${tmdbId}/season/${seasonNumber}/episode/${episodeNumber}`,
+    {
+      language: "en-US",
+    },
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Images                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export function tmdbPoster(
+  path: string | null | undefined,
+  size = "w500",
+): string | null {
+  if (!path) {
+    return null;
+  }
+
+  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
+}
+
+export function tmdbBackdrop(
+  path: string | null | undefined,
+  size = "w1280",
+): string | null {
+  if (!path) {
+    return null;
+  }
+
+  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
+}
+
+export function tmdbEpisodeStill(
+  path: string | null | undefined,
+  size = "w780",
+): string | null {
+  if (!path) {
+    return null;
+  }
+
+  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
 }
