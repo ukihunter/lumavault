@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { existsSync, statSync } from "node:fs";
+import { normalizeWindowsPath } from "@/lib/filesystem/windows-path";
 
 const LIBRARY_TYPES = ["MOVIES", "SERIES"] as const;
 
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
         ? body.name.trim()
         : "";
 
-    const path =
+    const rawPath =
       typeof body.path === "string"
         ? body.path.trim()
         : "";
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest) {
         ? body.type.toUpperCase()
         : "";
 
+    /*
+     * Validate library name.
+     */
     if (!name) {
       return NextResponse.json(
         {
@@ -68,7 +72,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!path) {
+    /*
+     * Validate library path.
+     */
+    if (!rawPath) {
       return NextResponse.json(
         {
           success: false,
@@ -78,6 +85,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /*
+     * Validate library type.
+     */
     if (!LIBRARY_TYPES.includes(type as LibraryType)) {
       return NextResponse.json(
         {
@@ -88,27 +98,89 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Make sure the selected path exists.
-    if (!existsSync(path)) {
+    /*
+     * Convert Windows paths to the Linux filesystem path.
+     *
+     * Example:
+     *
+     * D:\Games\Ben 10
+     *
+     * becomes:
+     *
+     * /run/media/uki/166469196468FCBD/Games/Ben 10
+     *
+     * Linux paths are returned unchanged.
+     */
+    let libraryPath: string;
+
+    try {
+      libraryPath = normalizeWindowsPath(rawPath);
+    } catch (error) {
       return NextResponse.json(
         {
           success: false,
-          error: "The selected directory does not exist",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Invalid library path",
         },
         { status: 400 },
       );
     }
 
-    // Make sure the path is actually a directory.
+    /*
+     * Make sure the converted path is not empty.
+     */
+    if (!libraryPath) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Library path is invalid",
+        },
+        { status: 400 },
+      );
+    }
+
+    /*
+     * Make sure the converted path exists.
+     *
+     * IMPORTANT:
+     *
+     * We check libraryPath, NOT rawPath.
+     *
+     * rawPath could be:
+     *
+     * D:\Games\Ben 10
+     *
+     * while libraryPath is:
+     *
+     * /run/media/uki/166469196468FCBD/Games/Ben 10
+     */
+    if (!existsSync(libraryPath)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "The selected directory does not exist on the LumaVault server.",
+        },
+        { status: 400 },
+      );
+    }
+
+    /*
+     * Make sure the converted path is actually
+     * a directory.
+     */
     let stats;
 
     try {
-      stats = statSync(path);
+      stats = statSync(libraryPath);
     } catch {
       return NextResponse.json(
         {
           success: false,
-          error: "Unable to access the selected directory",
+          error:
+            "Unable to access the selected directory.",
         },
         { status: 400 },
       );
@@ -118,33 +190,46 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "The selected path is not a directory",
+          error:
+            "The selected path is not a directory.",
         },
         { status: 400 },
       );
     }
 
-    // Prevent duplicate library paths.
-    const existingLibrary = await prisma.library.findUnique({
-      where: {
-        path,
-      },
-    });
+    /*
+     * Prevent duplicate library paths.
+     *
+     * We use the normalized Linux path because that is
+     * what is stored in the database.
+     */
+    const existingLibrary =
+      await prisma.library.findUnique({
+        where: {
+          path: libraryPath,
+        },
+      });
 
     if (existingLibrary) {
       return NextResponse.json(
         {
           success: false,
-          error: "A library already exists for this directory",
+          error:
+            "A library already exists for this directory.",
         },
         { status: 409 },
       );
     }
 
+    /*
+     * Create the library.
+     *
+     * Prisma stores the Linux path, not the Windows path.
+     */
     const library = await prisma.library.create({
       data: {
         name,
-        path,
+        path: libraryPath,
         type: type as LibraryType,
       },
       include: {
@@ -157,6 +242,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    /*
+     * Return the library.
+     *
+     * `path` will contain the normalized Linux path.
+     */
     return NextResponse.json(
       {
         success: true,
@@ -165,7 +255,10 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("POST /api/library error:", error);
+    console.error(
+      "POST /api/library error:",
+      error,
+    );
 
     return NextResponse.json(
       {

@@ -15,3 +15,11 @@ export const LibraryType = {
 } as const
 
 export type LibraryType = (typeof LibraryType)[keyof typeof LibraryType]
+
+
+export const MediaSourceType = {
+  FILE: 'FILE',
+  ARCHIVE: 'ARCHIVE'
+} as const
+
+export type MediaSourceType = (typeof MediaSourceType)[keyof typeof MediaSourceType]

@@ -177,6 +177,23 @@ export type IntWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedIntFilter<$PrismaModel>
 }
 
+export type EnumMediaSourceTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MediaSourceType[]
+  notIn?: $Enums.MediaSourceType[]
+  not?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel> | $Enums.MediaSourceType
+}
+
+export type EnumMediaSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MediaSourceType[]
+  notIn?: $Enums.MediaSourceType[]
+  not?: Prisma.NestedEnumMediaSourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.MediaSourceType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
+}
+
 export type BoolFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
@@ -368,6 +385,23 @@ export type NestedFloatFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatFilter<$PrismaModel> | number
+}
+
+export type NestedEnumMediaSourceTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MediaSourceType[]
+  notIn?: $Enums.MediaSourceType[]
+  not?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel> | $Enums.MediaSourceType
+}
+
+export type NestedEnumMediaSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MediaSourceType | Prisma.EnumMediaSourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.MediaSourceType[]
+  notIn?: $Enums.MediaSourceType[]
+  not?: Prisma.NestedEnumMediaSourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.MediaSourceType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMediaSourceTypeFilter<$PrismaModel>
 }
 
 export type NestedBoolFilter<$PrismaModel = never> = {

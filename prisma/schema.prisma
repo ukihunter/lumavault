@@ -12,6 +12,11 @@ enum LibraryType {
   SERIES
 }
 
+enum MediaSourceType {
+  FILE
+  ARCHIVE
+}
+
 model Library {
   id          String      @id @default(cuid())
   name        String
@@ -26,7 +31,7 @@ model Library {
 }
 
 model Movie {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   year        Int?
@@ -34,14 +39,15 @@ model Movie {
   poster      String?
   backdrop    String?
 
-  filePath    String      @unique
   duration    Int?
 
   libraryId   String
-  library     Library     @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  mediaSource MediaSource?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([libraryId])
   @@index([title])
@@ -49,7 +55,7 @@ model Movie {
 }
 
 model Series {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   year        Int?
@@ -58,12 +64,12 @@ model Series {
   backdrop    String?
 
   libraryId   String
-  library     Library     @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 
   seasons     Season[]
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([libraryId])
   @@index([title])
@@ -71,17 +77,17 @@ model Series {
 }
 
 model Season {
-  id          String      @id @default(cuid())
+  id          String    @id @default(cuid())
   number      Int
   title       String?
 
   seriesId    String
-  series      Series      @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  series      Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   episodes    Episode[]
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([seriesId, number])
 }
@@ -93,13 +99,13 @@ model Episode {
   description String?
 
   thumbnail   String?
-  filePath    String      @unique
   duration    Int?
 
   seasonId    String
   season      Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   progress    Progress?
+  mediaSource MediaSource?
 
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -107,13 +113,55 @@ model Episode {
   @@unique([seasonId, number])
 }
 
+model MediaSource {
+  id          String          @id @default(cuid())
+  type        MediaSourceType
+
+  /*
+   * FILE source
+   *
+   * Example:
+   * /media/movies/Interstellar.mkv
+   */
+  filePath    String?         @unique
+
+  /*
+   * ARCHIVE source
+   *
+   * Example:
+   * /media/Ben 10/Alien Force.zip
+   */
+  archivePath String?
+
+  /*
+   * Path of the media file inside the archive.
+   *
+   * Example:
+   * Ben 10_ Alien Force (2008)/S03E18.mp4
+   */
+  entryPath   String?
+
+  movieId     String?         @unique
+  movie       Movie?          @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  episodeId   String?         @unique
+  episode     Episode?        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([archivePath, entryPath])
+  @@index([type])
+  @@index([archivePath])
+}
+ 
 model Progress {
-  id          String      @id @default(cuid())
-  position    Int         @default(0)
-  completed   Boolean     @default(false)
+  id          String   @id @default(cuid())
+  position    Int      @default(0)
+  completed   Boolean  @default(false)
 
-  episodeId   String      @unique
-  episode     Episode     @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  episodeId   String   @unique
+  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
-  updatedAt   DateTime    @updatedAt
+  updatedAt   DateTime @updatedAt
 }

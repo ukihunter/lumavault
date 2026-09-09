@@ -42,7 +42,6 @@ export type EpisodeMinAggregateOutputType = {
   title: string | null
   description: string | null
   thumbnail: string | null
-  filePath: string | null
   duration: number | null
   seasonId: string | null
   createdAt: Date | null
@@ -55,7 +54,6 @@ export type EpisodeMaxAggregateOutputType = {
   title: string | null
   description: string | null
   thumbnail: string | null
-  filePath: string | null
   duration: number | null
   seasonId: string | null
   createdAt: Date | null
@@ -68,7 +66,6 @@ export type EpisodeCountAggregateOutputType = {
   title: number
   description: number
   thumbnail: number
-  filePath: number
   duration: number
   seasonId: number
   createdAt: number
@@ -93,7 +90,6 @@ export type EpisodeMinAggregateInputType = {
   title?: true
   description?: true
   thumbnail?: true
-  filePath?: true
   duration?: true
   seasonId?: true
   createdAt?: true
@@ -106,7 +102,6 @@ export type EpisodeMaxAggregateInputType = {
   title?: true
   description?: true
   thumbnail?: true
-  filePath?: true
   duration?: true
   seasonId?: true
   createdAt?: true
@@ -119,7 +114,6 @@ export type EpisodeCountAggregateInputType = {
   title?: true
   description?: true
   thumbnail?: true
-  filePath?: true
   duration?: true
   seasonId?: true
   createdAt?: true
@@ -219,7 +213,6 @@ export type EpisodeGroupByOutputType = {
   title: string
   description: string | null
   thumbnail: string | null
-  filePath: string
   duration: number | null
   seasonId: string
   createdAt: Date
@@ -255,13 +248,13 @@ export type EpisodeWhereInput = {
   title?: Prisma.StringFilter<"Episode"> | string
   description?: Prisma.StringNullableFilter<"Episode"> | string | null
   thumbnail?: Prisma.StringNullableFilter<"Episode"> | string | null
-  filePath?: Prisma.StringFilter<"Episode"> | string
   duration?: Prisma.IntNullableFilter<"Episode"> | number | null
   seasonId?: Prisma.StringFilter<"Episode"> | string
   createdAt?: Prisma.DateTimeFilter<"Episode"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Episode"> | Date | string
   season?: Prisma.XOR<Prisma.SeasonScalarRelationFilter, Prisma.SeasonWhereInput>
   progress?: Prisma.XOR<Prisma.ProgressNullableScalarRelationFilter, Prisma.ProgressWhereInput> | null
+  mediaSource?: Prisma.XOR<Prisma.MediaSourceNullableScalarRelationFilter, Prisma.MediaSourceWhereInput> | null
 }
 
 export type EpisodeOrderByWithRelationInput = {
@@ -270,18 +263,17 @@ export type EpisodeOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   thumbnail?: Prisma.SortOrderInput | Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
   seasonId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   season?: Prisma.SeasonOrderByWithRelationInput
   progress?: Prisma.ProgressOrderByWithRelationInput
+  mediaSource?: Prisma.MediaSourceOrderByWithRelationInput
 }
 
 export type EpisodeWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  filePath?: string
   seasonId_number?: Prisma.EpisodeSeasonIdNumberCompoundUniqueInput
   AND?: Prisma.EpisodeWhereInput | Prisma.EpisodeWhereInput[]
   OR?: Prisma.EpisodeWhereInput[]
@@ -296,7 +288,8 @@ export type EpisodeWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Episode"> | Date | string
   season?: Prisma.XOR<Prisma.SeasonScalarRelationFilter, Prisma.SeasonWhereInput>
   progress?: Prisma.XOR<Prisma.ProgressNullableScalarRelationFilter, Prisma.ProgressWhereInput> | null
-}, "id" | "filePath" | "seasonId_number">
+  mediaSource?: Prisma.XOR<Prisma.MediaSourceNullableScalarRelationFilter, Prisma.MediaSourceWhereInput> | null
+}, "id" | "seasonId_number">
 
 export type EpisodeOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -304,7 +297,6 @@ export type EpisodeOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   thumbnail?: Prisma.SortOrderInput | Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
   seasonId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -325,7 +317,6 @@ export type EpisodeScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"Episode"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Episode"> | string | null
   thumbnail?: Prisma.StringNullableWithAggregatesFilter<"Episode"> | string | null
-  filePath?: Prisma.StringWithAggregatesFilter<"Episode"> | string
   duration?: Prisma.IntNullableWithAggregatesFilter<"Episode"> | number | null
   seasonId?: Prisma.StringWithAggregatesFilter<"Episode"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Episode"> | Date | string
@@ -338,12 +329,12 @@ export type EpisodeCreateInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   season: Prisma.SeasonCreateNestedOneWithoutEpisodesInput
   progress?: Prisma.ProgressCreateNestedOneWithoutEpisodeInput
+  mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutEpisodeInput
 }
 
 export type EpisodeUncheckedCreateInput = {
@@ -352,12 +343,12 @@ export type EpisodeUncheckedCreateInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   seasonId: string
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressUncheckedCreateNestedOneWithoutEpisodeInput
+  mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutEpisodeInput
 }
 
 export type EpisodeUpdateInput = {
@@ -366,12 +357,12 @@ export type EpisodeUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   season?: Prisma.SeasonUpdateOneRequiredWithoutEpisodesNestedInput
   progress?: Prisma.ProgressUpdateOneWithoutEpisodeNestedInput
+  mediaSource?: Prisma.MediaSourceUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeUncheckedUpdateInput = {
@@ -380,12 +371,12 @@ export type EpisodeUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   seasonId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressUncheckedUpdateOneWithoutEpisodeNestedInput
+  mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeCreateManyInput = {
@@ -394,7 +385,6 @@ export type EpisodeCreateManyInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   seasonId: string
   createdAt?: Date | string
@@ -407,7 +397,6 @@ export type EpisodeUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -419,7 +408,6 @@ export type EpisodeUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   seasonId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -447,7 +435,6 @@ export type EpisodeCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   thumbnail?: Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   seasonId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -465,7 +452,6 @@ export type EpisodeMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   thumbnail?: Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   seasonId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -478,7 +464,6 @@ export type EpisodeMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   thumbnail?: Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   seasonId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -488,6 +473,11 @@ export type EpisodeMinOrderByAggregateInput = {
 export type EpisodeSumOrderByAggregateInput = {
   number?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+}
+
+export type EpisodeNullableScalarRelationFilter = {
+  is?: Prisma.EpisodeWhereInput | null
+  isNot?: Prisma.EpisodeWhereInput | null
 }
 
 export type EpisodeScalarRelationFilter = {
@@ -537,6 +527,22 @@ export type EpisodeUncheckedUpdateManyWithoutSeasonNestedInput = {
   deleteMany?: Prisma.EpisodeScalarWhereInput | Prisma.EpisodeScalarWhereInput[]
 }
 
+export type EpisodeCreateNestedOneWithoutMediaSourceInput = {
+  create?: Prisma.XOR<Prisma.EpisodeCreateWithoutMediaSourceInput, Prisma.EpisodeUncheckedCreateWithoutMediaSourceInput>
+  connectOrCreate?: Prisma.EpisodeCreateOrConnectWithoutMediaSourceInput
+  connect?: Prisma.EpisodeWhereUniqueInput
+}
+
+export type EpisodeUpdateOneWithoutMediaSourceNestedInput = {
+  create?: Prisma.XOR<Prisma.EpisodeCreateWithoutMediaSourceInput, Prisma.EpisodeUncheckedCreateWithoutMediaSourceInput>
+  connectOrCreate?: Prisma.EpisodeCreateOrConnectWithoutMediaSourceInput
+  upsert?: Prisma.EpisodeUpsertWithoutMediaSourceInput
+  disconnect?: Prisma.EpisodeWhereInput | boolean
+  delete?: Prisma.EpisodeWhereInput | boolean
+  connect?: Prisma.EpisodeWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EpisodeUpdateToOneWithWhereWithoutMediaSourceInput, Prisma.EpisodeUpdateWithoutMediaSourceInput>, Prisma.EpisodeUncheckedUpdateWithoutMediaSourceInput>
+}
+
 export type EpisodeCreateNestedOneWithoutProgressInput = {
   create?: Prisma.XOR<Prisma.EpisodeCreateWithoutProgressInput, Prisma.EpisodeUncheckedCreateWithoutProgressInput>
   connectOrCreate?: Prisma.EpisodeCreateOrConnectWithoutProgressInput
@@ -557,11 +563,11 @@ export type EpisodeCreateWithoutSeasonInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressCreateNestedOneWithoutEpisodeInput
+  mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutEpisodeInput
 }
 
 export type EpisodeUncheckedCreateWithoutSeasonInput = {
@@ -570,11 +576,11 @@ export type EpisodeUncheckedCreateWithoutSeasonInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   progress?: Prisma.ProgressUncheckedCreateNestedOneWithoutEpisodeInput
+  mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutEpisodeInput
 }
 
 export type EpisodeCreateOrConnectWithoutSeasonInput = {
@@ -611,11 +617,78 @@ export type EpisodeScalarWhereInput = {
   title?: Prisma.StringFilter<"Episode"> | string
   description?: Prisma.StringNullableFilter<"Episode"> | string | null
   thumbnail?: Prisma.StringNullableFilter<"Episode"> | string | null
-  filePath?: Prisma.StringFilter<"Episode"> | string
   duration?: Prisma.IntNullableFilter<"Episode"> | number | null
   seasonId?: Prisma.StringFilter<"Episode"> | string
   createdAt?: Prisma.DateTimeFilter<"Episode"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Episode"> | Date | string
+}
+
+export type EpisodeCreateWithoutMediaSourceInput = {
+  id?: string
+  number: number
+  title: string
+  description?: string | null
+  thumbnail?: string | null
+  duration?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  season: Prisma.SeasonCreateNestedOneWithoutEpisodesInput
+  progress?: Prisma.ProgressCreateNestedOneWithoutEpisodeInput
+}
+
+export type EpisodeUncheckedCreateWithoutMediaSourceInput = {
+  id?: string
+  number: number
+  title: string
+  description?: string | null
+  thumbnail?: string | null
+  duration?: number | null
+  seasonId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  progress?: Prisma.ProgressUncheckedCreateNestedOneWithoutEpisodeInput
+}
+
+export type EpisodeCreateOrConnectWithoutMediaSourceInput = {
+  where: Prisma.EpisodeWhereUniqueInput
+  create: Prisma.XOR<Prisma.EpisodeCreateWithoutMediaSourceInput, Prisma.EpisodeUncheckedCreateWithoutMediaSourceInput>
+}
+
+export type EpisodeUpsertWithoutMediaSourceInput = {
+  update: Prisma.XOR<Prisma.EpisodeUpdateWithoutMediaSourceInput, Prisma.EpisodeUncheckedUpdateWithoutMediaSourceInput>
+  create: Prisma.XOR<Prisma.EpisodeCreateWithoutMediaSourceInput, Prisma.EpisodeUncheckedCreateWithoutMediaSourceInput>
+  where?: Prisma.EpisodeWhereInput
+}
+
+export type EpisodeUpdateToOneWithWhereWithoutMediaSourceInput = {
+  where?: Prisma.EpisodeWhereInput
+  data: Prisma.XOR<Prisma.EpisodeUpdateWithoutMediaSourceInput, Prisma.EpisodeUncheckedUpdateWithoutMediaSourceInput>
+}
+
+export type EpisodeUpdateWithoutMediaSourceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  number?: Prisma.IntFieldUpdateOperationsInput | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  season?: Prisma.SeasonUpdateOneRequiredWithoutEpisodesNestedInput
+  progress?: Prisma.ProgressUpdateOneWithoutEpisodeNestedInput
+}
+
+export type EpisodeUncheckedUpdateWithoutMediaSourceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  number?: Prisma.IntFieldUpdateOperationsInput | number
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  seasonId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  progress?: Prisma.ProgressUncheckedUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeCreateWithoutProgressInput = {
@@ -624,11 +697,11 @@ export type EpisodeCreateWithoutProgressInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   season: Prisma.SeasonCreateNestedOneWithoutEpisodesInput
+  mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutEpisodeInput
 }
 
 export type EpisodeUncheckedCreateWithoutProgressInput = {
@@ -637,11 +710,11 @@ export type EpisodeUncheckedCreateWithoutProgressInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   seasonId: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutEpisodeInput
 }
 
 export type EpisodeCreateOrConnectWithoutProgressInput = {
@@ -666,11 +739,11 @@ export type EpisodeUpdateWithoutProgressInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   season?: Prisma.SeasonUpdateOneRequiredWithoutEpisodesNestedInput
+  mediaSource?: Prisma.MediaSourceUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeUncheckedUpdateWithoutProgressInput = {
@@ -679,11 +752,11 @@ export type EpisodeUncheckedUpdateWithoutProgressInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   seasonId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeCreateManySeasonInput = {
@@ -692,7 +765,6 @@ export type EpisodeCreateManySeasonInput = {
   title: string
   description?: string | null
   thumbnail?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -704,11 +776,11 @@ export type EpisodeUpdateWithoutSeasonInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressUpdateOneWithoutEpisodeNestedInput
+  mediaSource?: Prisma.MediaSourceUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeUncheckedUpdateWithoutSeasonInput = {
@@ -717,11 +789,11 @@ export type EpisodeUncheckedUpdateWithoutSeasonInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   progress?: Prisma.ProgressUncheckedUpdateOneWithoutEpisodeNestedInput
+  mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutEpisodeNestedInput
 }
 
 export type EpisodeUncheckedUpdateManyWithoutSeasonInput = {
@@ -730,7 +802,6 @@ export type EpisodeUncheckedUpdateManyWithoutSeasonInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -744,13 +815,13 @@ export type EpisodeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   title?: boolean
   description?: boolean
   thumbnail?: boolean
-  filePath?: boolean
   duration?: boolean
   seasonId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   season?: boolean | Prisma.SeasonDefaultArgs<ExtArgs>
   progress?: boolean | Prisma.Episode$progressArgs<ExtArgs>
+  mediaSource?: boolean | Prisma.Episode$mediaSourceArgs<ExtArgs>
 }, ExtArgs["result"]["episode"]>
 
 export type EpisodeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -759,7 +830,6 @@ export type EpisodeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   title?: boolean
   description?: boolean
   thumbnail?: boolean
-  filePath?: boolean
   duration?: boolean
   seasonId?: boolean
   createdAt?: boolean
@@ -773,7 +843,6 @@ export type EpisodeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   title?: boolean
   description?: boolean
   thumbnail?: boolean
-  filePath?: boolean
   duration?: boolean
   seasonId?: boolean
   createdAt?: boolean
@@ -787,17 +856,17 @@ export type EpisodeSelectScalar = {
   title?: boolean
   description?: boolean
   thumbnail?: boolean
-  filePath?: boolean
   duration?: boolean
   seasonId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type EpisodeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "number" | "title" | "description" | "thumbnail" | "filePath" | "duration" | "seasonId" | "createdAt" | "updatedAt", ExtArgs["result"]["episode"]>
+export type EpisodeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "number" | "title" | "description" | "thumbnail" | "duration" | "seasonId" | "createdAt" | "updatedAt", ExtArgs["result"]["episode"]>
 export type EpisodeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   season?: boolean | Prisma.SeasonDefaultArgs<ExtArgs>
   progress?: boolean | Prisma.Episode$progressArgs<ExtArgs>
+  mediaSource?: boolean | Prisma.Episode$mediaSourceArgs<ExtArgs>
 }
 export type EpisodeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   season?: boolean | Prisma.SeasonDefaultArgs<ExtArgs>
@@ -811,6 +880,7 @@ export type $EpisodePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     season: Prisma.$SeasonPayload<ExtArgs>
     progress: Prisma.$ProgressPayload<ExtArgs> | null
+    mediaSource: Prisma.$MediaSourcePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -818,7 +888,6 @@ export type $EpisodePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     title: string
     description: string | null
     thumbnail: string | null
-    filePath: string
     duration: number | null
     seasonId: string
     createdAt: Date
@@ -1219,6 +1288,7 @@ export interface Prisma__EpisodeClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   season<T extends Prisma.SeasonDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SeasonDefaultArgs<ExtArgs>>): Prisma.Prisma__SeasonClient<runtime.Types.Result.GetResult<Prisma.$SeasonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   progress<T extends Prisma.Episode$progressArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Episode$progressArgs<ExtArgs>>): Prisma.Prisma__ProgressClient<runtime.Types.Result.GetResult<Prisma.$ProgressPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  mediaSource<T extends Prisma.Episode$mediaSourceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Episode$mediaSourceArgs<ExtArgs>>): Prisma.Prisma__MediaSourceClient<runtime.Types.Result.GetResult<Prisma.$MediaSourcePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1253,7 +1323,6 @@ export interface EpisodeFieldRefs {
   readonly title: Prisma.FieldRef<"Episode", 'String'>
   readonly description: Prisma.FieldRef<"Episode", 'String'>
   readonly thumbnail: Prisma.FieldRef<"Episode", 'String'>
-  readonly filePath: Prisma.FieldRef<"Episode", 'String'>
   readonly duration: Prisma.FieldRef<"Episode", 'Int'>
   readonly seasonId: Prisma.FieldRef<"Episode", 'String'>
   readonly createdAt: Prisma.FieldRef<"Episode", 'DateTime'>
@@ -1673,6 +1742,25 @@ export type Episode$progressArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   include?: Prisma.ProgressInclude<ExtArgs> | null
   where?: Prisma.ProgressWhereInput
+}
+
+/**
+ * Episode.mediaSource
+ */
+export type Episode$mediaSourceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MediaSource
+   */
+  select?: Prisma.MediaSourceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MediaSource
+   */
+  omit?: Prisma.MediaSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MediaSourceInclude<ExtArgs> | null
+  where?: Prisma.MediaSourceWhereInput
 }
 
 /**

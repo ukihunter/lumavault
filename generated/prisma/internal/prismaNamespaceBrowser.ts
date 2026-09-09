@@ -56,6 +56,7 @@ export const ModelName = {
   Series: 'Series',
   Season: 'Season',
   Episode: 'Episode',
+  MediaSource: 'MediaSource',
   Progress: 'Progress'
 } as const
 
@@ -91,7 +92,6 @@ export const MovieScalarFieldEnum = {
   year: 'year',
   poster: 'poster',
   backdrop: 'backdrop',
-  filePath: 'filePath',
   duration: 'duration',
   libraryId: 'libraryId',
   createdAt: 'createdAt',
@@ -134,7 +134,6 @@ export const EpisodeScalarFieldEnum = {
   title: 'title',
   description: 'description',
   thumbnail: 'thumbnail',
-  filePath: 'filePath',
   duration: 'duration',
   seasonId: 'seasonId',
   createdAt: 'createdAt',
@@ -142,6 +141,21 @@ export const EpisodeScalarFieldEnum = {
 } as const
 
 export type EpisodeScalarFieldEnum = (typeof EpisodeScalarFieldEnum)[keyof typeof EpisodeScalarFieldEnum]
+
+
+export const MediaSourceScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  filePath: 'filePath',
+  archivePath: 'archivePath',
+  entryPath: 'entryPath',
+  movieId: 'movieId',
+  episodeId: 'episodeId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MediaSourceScalarFieldEnum = (typeof MediaSourceScalarFieldEnum)[keyof typeof MediaSourceScalarFieldEnum]
 
 
 export const ProgressScalarFieldEnum = {

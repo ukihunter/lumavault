@@ -402,6 +402,7 @@ export const ModelName = {
   Series: 'Series',
   Season: 'Season',
   Episode: 'Episode',
+  MediaSource: 'MediaSource',
   Progress: 'Progress'
 } as const
 
@@ -418,7 +419,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "library" | "movie" | "series" | "season" | "episode" | "progress"
+    modelProps: "library" | "movie" | "series" | "season" | "episode" | "mediaSource" | "progress"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -792,6 +793,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MediaSource: {
+      payload: Prisma.$MediaSourcePayload<ExtArgs>
+      fields: Prisma.MediaSourceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MediaSourceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MediaSourceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>
+        }
+        findFirst: {
+          args: Prisma.MediaSourceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MediaSourceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>
+        }
+        findMany: {
+          args: Prisma.MediaSourceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>[]
+        }
+        create: {
+          args: Prisma.MediaSourceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>
+        }
+        createMany: {
+          args: Prisma.MediaSourceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MediaSourceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>[]
+        }
+        delete: {
+          args: Prisma.MediaSourceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>
+        }
+        update: {
+          args: Prisma.MediaSourceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>
+        }
+        deleteMany: {
+          args: Prisma.MediaSourceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MediaSourceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MediaSourceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>[]
+        }
+        upsert: {
+          args: Prisma.MediaSourceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MediaSourcePayload>
+        }
+        aggregate: {
+          args: Prisma.MediaSourceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMediaSource>
+        }
+        groupBy: {
+          args: Prisma.MediaSourceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaSourceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MediaSourceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MediaSourceCountAggregateOutputType> | number
+        }
+      }
+    }
     Progress: {
       payload: Prisma.$ProgressPayload<ExtArgs>
       fields: Prisma.ProgressFieldRefs
@@ -921,7 +996,6 @@ export const MovieScalarFieldEnum = {
   year: 'year',
   poster: 'poster',
   backdrop: 'backdrop',
-  filePath: 'filePath',
   duration: 'duration',
   libraryId: 'libraryId',
   createdAt: 'createdAt',
@@ -964,7 +1038,6 @@ export const EpisodeScalarFieldEnum = {
   title: 'title',
   description: 'description',
   thumbnail: 'thumbnail',
-  filePath: 'filePath',
   duration: 'duration',
   seasonId: 'seasonId',
   createdAt: 'createdAt',
@@ -972,6 +1045,21 @@ export const EpisodeScalarFieldEnum = {
 } as const
 
 export type EpisodeScalarFieldEnum = (typeof EpisodeScalarFieldEnum)[keyof typeof EpisodeScalarFieldEnum]
+
+
+export const MediaSourceScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  filePath: 'filePath',
+  archivePath: 'archivePath',
+  entryPath: 'entryPath',
+  movieId: 'movieId',
+  episodeId: 'episodeId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MediaSourceScalarFieldEnum = (typeof MediaSourceScalarFieldEnum)[keyof typeof MediaSourceScalarFieldEnum]
 
 
 export const ProgressScalarFieldEnum = {
@@ -1032,6 +1120,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'MediaSourceType'
+ */
+export type EnumMediaSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MediaSourceType'>
     
 
 
@@ -1204,6 +1299,7 @@ export type GlobalOmitConfig = {
   series?: Prisma.SeriesOmit
   season?: Prisma.SeasonOmit
   episode?: Prisma.EpisodeOmit
+  mediaSource?: Prisma.MediaSourceOmit
   progress?: Prisma.ProgressOmit
 }
 

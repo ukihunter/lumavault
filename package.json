@@ -28,6 +28,7 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/yauzl": "^3.4.0",
     "typescript": "^7.0.2"
   },
   "dependencies": {
@@ -41,7 +42,8 @@
     "prisma": "^7.10.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "yauzl": "^3.4.0"
   },
   "allowScripts": {
     "better-sqlite3@12.11.1": true,

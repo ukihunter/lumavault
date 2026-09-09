@@ -67,6 +67,11 @@ export type Season = Prisma.SeasonModel
  */
 export type Episode = Prisma.EpisodeModel
 /**
+ * Model MediaSource
+ * 
+ */
+export type MediaSource = Prisma.MediaSourceModel
+/**
  * Model Progress
  * 
  */

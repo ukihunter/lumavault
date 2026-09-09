@@ -43,7 +43,6 @@ export type MovieMinAggregateOutputType = {
   year: number | null
   poster: string | null
   backdrop: string | null
-  filePath: string | null
   duration: number | null
   libraryId: string | null
   createdAt: Date | null
@@ -57,7 +56,6 @@ export type MovieMaxAggregateOutputType = {
   year: number | null
   poster: string | null
   backdrop: string | null
-  filePath: string | null
   duration: number | null
   libraryId: string | null
   createdAt: Date | null
@@ -71,7 +69,6 @@ export type MovieCountAggregateOutputType = {
   year: number
   poster: number
   backdrop: number
-  filePath: number
   duration: number
   libraryId: number
   createdAt: number
@@ -97,7 +94,6 @@ export type MovieMinAggregateInputType = {
   year?: true
   poster?: true
   backdrop?: true
-  filePath?: true
   duration?: true
   libraryId?: true
   createdAt?: true
@@ -111,7 +107,6 @@ export type MovieMaxAggregateInputType = {
   year?: true
   poster?: true
   backdrop?: true
-  filePath?: true
   duration?: true
   libraryId?: true
   createdAt?: true
@@ -125,7 +120,6 @@ export type MovieCountAggregateInputType = {
   year?: true
   poster?: true
   backdrop?: true
-  filePath?: true
   duration?: true
   libraryId?: true
   createdAt?: true
@@ -226,7 +220,6 @@ export type MovieGroupByOutputType = {
   year: number | null
   poster: string | null
   backdrop: string | null
-  filePath: string
   duration: number | null
   libraryId: string
   createdAt: Date
@@ -263,12 +256,12 @@ export type MovieWhereInput = {
   year?: Prisma.IntNullableFilter<"Movie"> | number | null
   poster?: Prisma.StringNullableFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Movie"> | string | null
-  filePath?: Prisma.StringFilter<"Movie"> | string
   duration?: Prisma.IntNullableFilter<"Movie"> | number | null
   libraryId?: Prisma.StringFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   library?: Prisma.XOR<Prisma.LibraryScalarRelationFilter, Prisma.LibraryWhereInput>
+  mediaSource?: Prisma.XOR<Prisma.MediaSourceNullableScalarRelationFilter, Prisma.MediaSourceWhereInput> | null
 }
 
 export type MovieOrderByWithRelationInput = {
@@ -278,17 +271,16 @@ export type MovieOrderByWithRelationInput = {
   year?: Prisma.SortOrderInput | Prisma.SortOrder
   poster?: Prisma.SortOrderInput | Prisma.SortOrder
   backdrop?: Prisma.SortOrderInput | Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   library?: Prisma.LibraryOrderByWithRelationInput
+  mediaSource?: Prisma.MediaSourceOrderByWithRelationInput
 }
 
 export type MovieWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  filePath?: string
   AND?: Prisma.MovieWhereInput | Prisma.MovieWhereInput[]
   OR?: Prisma.MovieWhereInput[]
   NOT?: Prisma.MovieWhereInput | Prisma.MovieWhereInput[]
@@ -302,7 +294,8 @@ export type MovieWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   library?: Prisma.XOR<Prisma.LibraryScalarRelationFilter, Prisma.LibraryWhereInput>
-}, "id" | "filePath">
+  mediaSource?: Prisma.XOR<Prisma.MediaSourceNullableScalarRelationFilter, Prisma.MediaSourceWhereInput> | null
+}, "id">
 
 export type MovieOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -311,7 +304,6 @@ export type MovieOrderByWithAggregationInput = {
   year?: Prisma.SortOrderInput | Prisma.SortOrder
   poster?: Prisma.SortOrderInput | Prisma.SortOrder
   backdrop?: Prisma.SortOrderInput | Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -333,7 +325,6 @@ export type MovieScalarWhereWithAggregatesInput = {
   year?: Prisma.IntNullableWithAggregatesFilter<"Movie"> | number | null
   poster?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
-  filePath?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   duration?: Prisma.IntNullableWithAggregatesFilter<"Movie"> | number | null
   libraryId?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Movie"> | Date | string
@@ -347,11 +338,11 @@ export type MovieCreateInput = {
   year?: number | null
   poster?: string | null
   backdrop?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
+  mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUncheckedCreateInput = {
@@ -361,11 +352,11 @@ export type MovieUncheckedCreateInput = {
   year?: number | null
   poster?: string | null
   backdrop?: string | null
-  filePath: string
   duration?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUpdateInput = {
@@ -375,11 +366,11 @@ export type MovieUpdateInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
+  mediaSource?: Prisma.MediaSourceUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateInput = {
@@ -389,11 +380,11 @@ export type MovieUncheckedUpdateInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieCreateManyInput = {
@@ -403,7 +394,6 @@ export type MovieCreateManyInput = {
   year?: number | null
   poster?: string | null
   backdrop?: string | null
-  filePath: string
   duration?: number | null
   libraryId: string
   createdAt?: Date | string
@@ -417,7 +407,6 @@ export type MovieUpdateManyMutationInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -430,7 +419,6 @@ export type MovieUncheckedUpdateManyInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -454,7 +442,6 @@ export type MovieCountOrderByAggregateInput = {
   year?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -473,7 +460,6 @@ export type MovieMaxOrderByAggregateInput = {
   year?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -487,7 +473,6 @@ export type MovieMinOrderByAggregateInput = {
   year?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
-  filePath?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -497,6 +482,11 @@ export type MovieMinOrderByAggregateInput = {
 export type MovieSumOrderByAggregateInput = {
   year?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+}
+
+export type MovieNullableScalarRelationFilter = {
+  is?: Prisma.MovieWhereInput | null
+  isNot?: Prisma.MovieWhereInput | null
 }
 
 export type MovieCreateNestedManyWithoutLibraryInput = {
@@ -553,6 +543,22 @@ export type NullableIntFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type MovieCreateNestedOneWithoutMediaSourceInput = {
+  create?: Prisma.XOR<Prisma.MovieCreateWithoutMediaSourceInput, Prisma.MovieUncheckedCreateWithoutMediaSourceInput>
+  connectOrCreate?: Prisma.MovieCreateOrConnectWithoutMediaSourceInput
+  connect?: Prisma.MovieWhereUniqueInput
+}
+
+export type MovieUpdateOneWithoutMediaSourceNestedInput = {
+  create?: Prisma.XOR<Prisma.MovieCreateWithoutMediaSourceInput, Prisma.MovieUncheckedCreateWithoutMediaSourceInput>
+  connectOrCreate?: Prisma.MovieCreateOrConnectWithoutMediaSourceInput
+  upsert?: Prisma.MovieUpsertWithoutMediaSourceInput
+  disconnect?: Prisma.MovieWhereInput | boolean
+  delete?: Prisma.MovieWhereInput | boolean
+  connect?: Prisma.MovieWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MovieUpdateToOneWithWhereWithoutMediaSourceInput, Prisma.MovieUpdateWithoutMediaSourceInput>, Prisma.MovieUncheckedUpdateWithoutMediaSourceInput>
+}
+
 export type MovieCreateWithoutLibraryInput = {
   id?: string
   title: string
@@ -560,10 +566,10 @@ export type MovieCreateWithoutLibraryInput = {
   year?: number | null
   poster?: string | null
   backdrop?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUncheckedCreateWithoutLibraryInput = {
@@ -573,10 +579,10 @@ export type MovieUncheckedCreateWithoutLibraryInput = {
   year?: number | null
   poster?: string | null
   backdrop?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutMovieInput
 }
 
 export type MovieCreateOrConnectWithoutLibraryInput = {
@@ -614,11 +620,78 @@ export type MovieScalarWhereInput = {
   year?: Prisma.IntNullableFilter<"Movie"> | number | null
   poster?: Prisma.StringNullableFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Movie"> | string | null
-  filePath?: Prisma.StringFilter<"Movie"> | string
   duration?: Prisma.IntNullableFilter<"Movie"> | number | null
   libraryId?: Prisma.StringFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
+}
+
+export type MovieCreateWithoutMediaSourceInput = {
+  id?: string
+  title: string
+  description?: string | null
+  year?: number | null
+  poster?: string | null
+  backdrop?: string | null
+  duration?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
+}
+
+export type MovieUncheckedCreateWithoutMediaSourceInput = {
+  id?: string
+  title: string
+  description?: string | null
+  year?: number | null
+  poster?: string | null
+  backdrop?: string | null
+  duration?: number | null
+  libraryId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type MovieCreateOrConnectWithoutMediaSourceInput = {
+  where: Prisma.MovieWhereUniqueInput
+  create: Prisma.XOR<Prisma.MovieCreateWithoutMediaSourceInput, Prisma.MovieUncheckedCreateWithoutMediaSourceInput>
+}
+
+export type MovieUpsertWithoutMediaSourceInput = {
+  update: Prisma.XOR<Prisma.MovieUpdateWithoutMediaSourceInput, Prisma.MovieUncheckedUpdateWithoutMediaSourceInput>
+  create: Prisma.XOR<Prisma.MovieCreateWithoutMediaSourceInput, Prisma.MovieUncheckedCreateWithoutMediaSourceInput>
+  where?: Prisma.MovieWhereInput
+}
+
+export type MovieUpdateToOneWithWhereWithoutMediaSourceInput = {
+  where?: Prisma.MovieWhereInput
+  data: Prisma.XOR<Prisma.MovieUpdateWithoutMediaSourceInput, Prisma.MovieUncheckedUpdateWithoutMediaSourceInput>
+}
+
+export type MovieUpdateWithoutMediaSourceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
+}
+
+export type MovieUncheckedUpdateWithoutMediaSourceInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  libraryId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type MovieCreateManyLibraryInput = {
@@ -628,7 +701,6 @@ export type MovieCreateManyLibraryInput = {
   year?: number | null
   poster?: string | null
   backdrop?: string | null
-  filePath: string
   duration?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -641,10 +713,10 @@ export type MovieUpdateWithoutLibraryInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  mediaSource?: Prisma.MediaSourceUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateWithoutLibraryInput = {
@@ -654,10 +726,10 @@ export type MovieUncheckedUpdateWithoutLibraryInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateManyWithoutLibraryInput = {
@@ -667,7 +739,6 @@ export type MovieUncheckedUpdateManyWithoutLibraryInput = {
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  filePath?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -682,12 +753,12 @@ export type MovieSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   year?: boolean
   poster?: boolean
   backdrop?: boolean
-  filePath?: boolean
   duration?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
+  mediaSource?: boolean | Prisma.Movie$mediaSourceArgs<ExtArgs>
 }, ExtArgs["result"]["movie"]>
 
 export type MovieSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -697,7 +768,6 @@ export type MovieSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   year?: boolean
   poster?: boolean
   backdrop?: boolean
-  filePath?: boolean
   duration?: boolean
   libraryId?: boolean
   createdAt?: boolean
@@ -712,7 +782,6 @@ export type MovieSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   year?: boolean
   poster?: boolean
   backdrop?: boolean
-  filePath?: boolean
   duration?: boolean
   libraryId?: boolean
   createdAt?: boolean
@@ -727,16 +796,16 @@ export type MovieSelectScalar = {
   year?: boolean
   poster?: boolean
   backdrop?: boolean
-  filePath?: boolean
   duration?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "year" | "poster" | "backdrop" | "filePath" | "duration" | "libraryId" | "createdAt" | "updatedAt", ExtArgs["result"]["movie"]>
+export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "year" | "poster" | "backdrop" | "duration" | "libraryId" | "createdAt" | "updatedAt", ExtArgs["result"]["movie"]>
 export type MovieInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
+  mediaSource?: boolean | Prisma.Movie$mediaSourceArgs<ExtArgs>
 }
 export type MovieIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
@@ -749,6 +818,7 @@ export type $MoviePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   name: "Movie"
   objects: {
     library: Prisma.$LibraryPayload<ExtArgs>
+    mediaSource: Prisma.$MediaSourcePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -757,7 +827,6 @@ export type $MoviePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     year: number | null
     poster: string | null
     backdrop: string | null
-    filePath: string
     duration: number | null
     libraryId: string
     createdAt: Date
@@ -1157,6 +1226,7 @@ readonly fields: MovieFieldRefs;
 export interface Prisma__MovieClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   library<T extends Prisma.LibraryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LibraryDefaultArgs<ExtArgs>>): Prisma.Prisma__LibraryClient<runtime.Types.Result.GetResult<Prisma.$LibraryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  mediaSource<T extends Prisma.Movie$mediaSourceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Movie$mediaSourceArgs<ExtArgs>>): Prisma.Prisma__MediaSourceClient<runtime.Types.Result.GetResult<Prisma.$MediaSourcePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1192,7 +1262,6 @@ export interface MovieFieldRefs {
   readonly year: Prisma.FieldRef<"Movie", 'Int'>
   readonly poster: Prisma.FieldRef<"Movie", 'String'>
   readonly backdrop: Prisma.FieldRef<"Movie", 'String'>
-  readonly filePath: Prisma.FieldRef<"Movie", 'String'>
   readonly duration: Prisma.FieldRef<"Movie", 'Int'>
   readonly libraryId: Prisma.FieldRef<"Movie", 'String'>
   readonly createdAt: Prisma.FieldRef<"Movie", 'DateTime'>
@@ -1593,6 +1662,25 @@ export type MovieDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Limit how many Movies to delete.
    */
   limit?: number
+}
+
+/**
+ * Movie.mediaSource
+ */
+export type Movie$mediaSourceArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MediaSource
+   */
+  select?: Prisma.MediaSourceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MediaSource
+   */
+  omit?: Prisma.MediaSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MediaSourceInclude<ExtArgs> | null
+  where?: Prisma.MediaSourceWhereInput
 }
 
 /**
