@@ -11,7 +11,8 @@
 
 export const LibraryType = {
   MOVIES: 'MOVIES',
-  SERIES: 'SERIES'
+  SERIES: 'SERIES',
+  MIXED: 'MIXED'
 } as const
 
 export type LibraryType = (typeof LibraryType)[keyof typeof LibraryType]

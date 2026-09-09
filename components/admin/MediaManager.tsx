@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type LibraryType = "MOVIES" | "SERIES";
+type LibraryType = "MOVIES" | "SERIES" | "MIXED";
 
 type Library = {
   id: string;
@@ -45,7 +45,7 @@ export default function MediaManager() {
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-
+const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(initialForm);
 
   const [showBrowser, setShowBrowser] = useState(false);
@@ -181,7 +181,61 @@ export default function MediaManager() {
     updateForm("path", directoryPath);
     setShowBrowser(false);
   }
+async function handleDeleteLibrary(library: Library) {
+  const confirmed = window.confirm(
+    `Delete "${library.name}"?\n\nThis will remove the library and all media records associated with it from LumaVault.\n\nYour actual files and ZIP archives will NOT be deleted.`
+  );
 
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    setDeletingId(library.id);
+    setMessage(null);
+
+    const response = await fetch(
+      `/api/library/${library.id}`,
+      {
+        method: "DELETE",
+      },
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.error ?? "Failed to delete library.",
+      );
+    }
+
+    setLibraries((current) =>
+      current.filter(
+        (item) => item.id !== library.id,
+      ),
+    );
+
+    setMessage({
+      type: "success",
+      text: `"${library.name}" deleted successfully.`,
+    });
+  } catch (error) {
+    console.error(
+      "Failed to delete library:",
+      error,
+    );
+
+    setMessage({
+      type: "error",
+      text:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete library.",
+    });
+  } finally {
+    setDeletingId(null);
+  }
+}
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -271,6 +325,7 @@ export default function MediaManager() {
             >
               <option value="MOVIES">Movies</option>
               <option value="SERIES">TV Series</option>
+              <option value={"MIXED"}>Mixed</option>
             </select>
           </div>
 
@@ -385,29 +440,46 @@ export default function MediaManager() {
                     </h3>
 
                     <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      {library.type === "MOVIES"
-                        ? "Movies"
-                        : "TV Series"}
-                    </span>
+                  {library.type === "MOVIES"
+                    ? "Movies"
+                    : library.type === "SERIES"
+                      ? "TV Series"
+                      : "Mixed"}
+                </span>
                   </div>
 
                   <p className="mt-2 break-all font-mono text-xs text-zinc-500 dark:text-zinc-400">
                     {library.path}
                   </p>
 
-                  {library._count && (
-                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      {library.type === "MOVIES"
-                        ? `${library._count.movies} movies`
-                        : `${library._count.series} series`}
-                    </p>
-                  )}
+                 {library._count && (
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {library.type === "MOVIES"
+                      ? `${library._count.movies} movies`
+                      : library.type === "SERIES"
+                        ? `${library._count.series} series`
+                        : `${library._count.movies} movies · ${library._count.series} series`}
+                  </p>
+                )}
                 </div>
 
-                <div className="shrink-0">
+               <div className="flex shrink-0 items-center gap-2">
                   <span className="inline-flex rounded-full bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                     Active
                   </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDeleteLibrary(library)
+                    }
+                    disabled={deletingId === library.id}
+                    className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+                  >
+                    {deletingId === library.id
+                      ? "Deleting..."
+                      : "Delete"}
+                  </button>
                 </div>
               </div>
             ))}

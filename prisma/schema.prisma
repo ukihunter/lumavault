@@ -10,6 +10,7 @@ datasource db {
 enum LibraryType {
   MOVIES
   SERIES
+  MIXED
 }
 
 enum MediaSourceType {

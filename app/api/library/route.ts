@@ -3,7 +3,11 @@ import { prisma } from "@/lib/db/prisma";
 import { existsSync, statSync } from "node:fs";
 import { normalizeWindowsPath } from "@/lib/filesystem/windows-path";
 
-const LIBRARY_TYPES = ["MOVIES", "SERIES"] as const;
+const LIBRARY_TYPES = [
+  "MOVIES",
+  "SERIES",
+  "MIXED",
+] as const;
 
 type LibraryType = (typeof LIBRARY_TYPES)[number];
 
