@@ -294,6 +294,7 @@ export type MovieWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   library?: Prisma.XOR<Prisma.LibraryScalarRelationFilter, Prisma.LibraryWhereInput>
   mediaSource?: Prisma.XOR<Prisma.MediaSourceNullableScalarRelationFilter, Prisma.MediaSourceWhereInput> | null
+  progress?: Prisma.XOR<Prisma.ProgressNullableScalarRelationFilter, Prisma.ProgressWhereInput> | null
 }
 
 export type MovieOrderByWithRelationInput = {
@@ -312,6 +313,7 @@ export type MovieOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   library?: Prisma.LibraryOrderByWithRelationInput
   mediaSource?: Prisma.MediaSourceOrderByWithRelationInput
+  progress?: Prisma.ProgressOrderByWithRelationInput
 }
 
 export type MovieWhereUniqueInput = Prisma.AtLeast<{
@@ -333,6 +335,7 @@ export type MovieWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   library?: Prisma.XOR<Prisma.LibraryScalarRelationFilter, Prisma.LibraryWhereInput>
   mediaSource?: Prisma.XOR<Prisma.MediaSourceNullableScalarRelationFilter, Prisma.MediaSourceWhereInput> | null
+  progress?: Prisma.XOR<Prisma.ProgressNullableScalarRelationFilter, Prisma.ProgressWhereInput> | null
 }, "id">
 
 export type MovieOrderByWithAggregationInput = {
@@ -390,6 +393,7 @@ export type MovieCreateInput = {
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
   mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutMovieInput
+  progress?: Prisma.ProgressCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUncheckedCreateInput = {
@@ -407,6 +411,7 @@ export type MovieUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutMovieInput
+  progress?: Prisma.ProgressUncheckedCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUpdateInput = {
@@ -424,6 +429,7 @@ export type MovieUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
   mediaSource?: Prisma.MediaSourceUpdateOneWithoutMovieNestedInput
+  progress?: Prisma.ProgressUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateInput = {
@@ -441,6 +447,7 @@ export type MovieUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutMovieNestedInput
+  progress?: Prisma.ProgressUncheckedUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieCreateManyInput = {
@@ -645,6 +652,22 @@ export type MovieUpdateOneWithoutMediaSourceNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.MovieUpdateToOneWithWhereWithoutMediaSourceInput, Prisma.MovieUpdateWithoutMediaSourceInput>, Prisma.MovieUncheckedUpdateWithoutMediaSourceInput>
 }
 
+export type MovieCreateNestedOneWithoutProgressInput = {
+  create?: Prisma.XOR<Prisma.MovieCreateWithoutProgressInput, Prisma.MovieUncheckedCreateWithoutProgressInput>
+  connectOrCreate?: Prisma.MovieCreateOrConnectWithoutProgressInput
+  connect?: Prisma.MovieWhereUniqueInput
+}
+
+export type MovieUpdateOneWithoutProgressNestedInput = {
+  create?: Prisma.XOR<Prisma.MovieCreateWithoutProgressInput, Prisma.MovieUncheckedCreateWithoutProgressInput>
+  connectOrCreate?: Prisma.MovieCreateOrConnectWithoutProgressInput
+  upsert?: Prisma.MovieUpsertWithoutProgressInput
+  disconnect?: Prisma.MovieWhereInput | boolean
+  delete?: Prisma.MovieWhereInput | boolean
+  connect?: Prisma.MovieWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MovieUpdateToOneWithWhereWithoutProgressInput, Prisma.MovieUpdateWithoutProgressInput>, Prisma.MovieUncheckedUpdateWithoutProgressInput>
+}
+
 export type MovieCreateWithoutLibraryInput = {
   id?: string
   title: string
@@ -659,6 +682,7 @@ export type MovieCreateWithoutLibraryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutMovieInput
+  progress?: Prisma.ProgressCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUncheckedCreateWithoutLibraryInput = {
@@ -675,6 +699,7 @@ export type MovieUncheckedCreateWithoutLibraryInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutMovieInput
+  progress?: Prisma.ProgressUncheckedCreateNestedOneWithoutMovieInput
 }
 
 export type MovieCreateOrConnectWithoutLibraryInput = {
@@ -735,6 +760,7 @@ export type MovieCreateWithoutMediaSourceInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
+  progress?: Prisma.ProgressCreateNestedOneWithoutMovieInput
 }
 
 export type MovieUncheckedCreateWithoutMediaSourceInput = {
@@ -751,6 +777,7 @@ export type MovieUncheckedCreateWithoutMediaSourceInput = {
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  progress?: Prisma.ProgressUncheckedCreateNestedOneWithoutMovieInput
 }
 
 export type MovieCreateOrConnectWithoutMediaSourceInput = {
@@ -783,6 +810,7 @@ export type MovieUpdateWithoutMediaSourceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
+  progress?: Prisma.ProgressUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateWithoutMediaSourceInput = {
@@ -799,6 +827,91 @@ export type MovieUncheckedUpdateWithoutMediaSourceInput = {
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  progress?: Prisma.ProgressUncheckedUpdateOneWithoutMovieNestedInput
+}
+
+export type MovieCreateWithoutProgressInput = {
+  id?: string
+  title: string
+  description?: string | null
+  year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
+  poster?: string | null
+  backdrop?: string | null
+  voteAverage?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
+  mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutMovieInput
+}
+
+export type MovieUncheckedCreateWithoutProgressInput = {
+  id?: string
+  title: string
+  description?: string | null
+  year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
+  poster?: string | null
+  backdrop?: string | null
+  voteAverage?: number | null
+  libraryId: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutMovieInput
+}
+
+export type MovieCreateOrConnectWithoutProgressInput = {
+  where: Prisma.MovieWhereUniqueInput
+  create: Prisma.XOR<Prisma.MovieCreateWithoutProgressInput, Prisma.MovieUncheckedCreateWithoutProgressInput>
+}
+
+export type MovieUpsertWithoutProgressInput = {
+  update: Prisma.XOR<Prisma.MovieUpdateWithoutProgressInput, Prisma.MovieUncheckedUpdateWithoutProgressInput>
+  create: Prisma.XOR<Prisma.MovieCreateWithoutProgressInput, Prisma.MovieUncheckedCreateWithoutProgressInput>
+  where?: Prisma.MovieWhereInput
+}
+
+export type MovieUpdateToOneWithWhereWithoutProgressInput = {
+  where?: Prisma.MovieWhereInput
+  data: Prisma.XOR<Prisma.MovieUpdateWithoutProgressInput, Prisma.MovieUncheckedUpdateWithoutProgressInput>
+}
+
+export type MovieUpdateWithoutProgressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
+  mediaSource?: Prisma.MediaSourceUpdateOneWithoutMovieNestedInput
+}
+
+export type MovieUncheckedUpdateWithoutProgressInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  libraryId?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieCreateManyLibraryInput = {
@@ -830,6 +943,7 @@ export type MovieUpdateWithoutLibraryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mediaSource?: Prisma.MediaSourceUpdateOneWithoutMovieNestedInput
+  progress?: Prisma.ProgressUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateWithoutLibraryInput = {
@@ -846,6 +960,7 @@ export type MovieUncheckedUpdateWithoutLibraryInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutMovieNestedInput
+  progress?: Prisma.ProgressUncheckedUpdateOneWithoutMovieNestedInput
 }
 
 export type MovieUncheckedUpdateManyWithoutLibraryInput = {
@@ -881,6 +996,7 @@ export type MovieSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   updatedAt?: boolean
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
   mediaSource?: boolean | Prisma.Movie$mediaSourceArgs<ExtArgs>
+  progress?: boolean | Prisma.Movie$progressArgs<ExtArgs>
 }, ExtArgs["result"]["movie"]>
 
 export type MovieSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -937,6 +1053,7 @@ export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = ru
 export type MovieInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
   mediaSource?: boolean | Prisma.Movie$mediaSourceArgs<ExtArgs>
+  progress?: boolean | Prisma.Movie$progressArgs<ExtArgs>
 }
 export type MovieIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
@@ -950,6 +1067,7 @@ export type $MoviePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   objects: {
     library: Prisma.$LibraryPayload<ExtArgs>
     mediaSource: Prisma.$MediaSourcePayload<ExtArgs> | null
+    progress: Prisma.$ProgressPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1361,6 +1479,7 @@ export interface Prisma__MovieClient<T, Null = never, ExtArgs extends runtime.Ty
   readonly [Symbol.toStringTag]: "PrismaPromise"
   library<T extends Prisma.LibraryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LibraryDefaultArgs<ExtArgs>>): Prisma.Prisma__LibraryClient<runtime.Types.Result.GetResult<Prisma.$LibraryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   mediaSource<T extends Prisma.Movie$mediaSourceArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Movie$mediaSourceArgs<ExtArgs>>): Prisma.Prisma__MediaSourceClient<runtime.Types.Result.GetResult<Prisma.$MediaSourcePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  progress<T extends Prisma.Movie$progressArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Movie$progressArgs<ExtArgs>>): Prisma.Prisma__ProgressClient<runtime.Types.Result.GetResult<Prisma.$ProgressPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1818,6 +1937,25 @@ export type Movie$mediaSourceArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   include?: Prisma.MediaSourceInclude<ExtArgs> | null
   where?: Prisma.MediaSourceWhereInput
+}
+
+/**
+ * Movie.progress
+ */
+export type Movie$progressArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Progress
+   */
+  select?: Prisma.ProgressSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Progress
+   */
+  omit?: Prisma.ProgressOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ProgressInclude<ExtArgs> | null
+  where?: Prisma.ProgressWhereInput
 }
 
 /**

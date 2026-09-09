@@ -1073,6 +1073,7 @@ export const ProgressScalarFieldEnum = {
   position: 'position',
   completed: 'completed',
   episodeId: 'episodeId',
+  movieId: 'movieId',
   updatedAt: 'updatedAt'
 } as const
 

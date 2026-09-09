@@ -39,6 +39,7 @@ export type ProgressMinAggregateOutputType = {
   position: number | null
   completed: boolean | null
   episodeId: string | null
+  movieId: string | null
   updatedAt: Date | null
 }
 
@@ -47,6 +48,7 @@ export type ProgressMaxAggregateOutputType = {
   position: number | null
   completed: boolean | null
   episodeId: string | null
+  movieId: string | null
   updatedAt: Date | null
 }
 
@@ -55,6 +57,7 @@ export type ProgressCountAggregateOutputType = {
   position: number
   completed: number
   episodeId: number
+  movieId: number
   updatedAt: number
   _all: number
 }
@@ -73,6 +76,7 @@ export type ProgressMinAggregateInputType = {
   position?: true
   completed?: true
   episodeId?: true
+  movieId?: true
   updatedAt?: true
 }
 
@@ -81,6 +85,7 @@ export type ProgressMaxAggregateInputType = {
   position?: true
   completed?: true
   episodeId?: true
+  movieId?: true
   updatedAt?: true
 }
 
@@ -89,6 +94,7 @@ export type ProgressCountAggregateInputType = {
   position?: true
   completed?: true
   episodeId?: true
+  movieId?: true
   updatedAt?: true
   _all?: true
 }
@@ -183,7 +189,8 @@ export type ProgressGroupByOutputType = {
   id: string
   position: number
   completed: boolean
-  episodeId: string
+  episodeId: string | null
+  movieId: string | null
   updatedAt: Date
   _count: ProgressCountAggregateOutputType | null
   _avg: ProgressAvgAggregateOutputType | null
@@ -214,37 +221,44 @@ export type ProgressWhereInput = {
   id?: Prisma.StringFilter<"Progress"> | string
   position?: Prisma.IntFilter<"Progress"> | number
   completed?: Prisma.BoolFilter<"Progress"> | boolean
-  episodeId?: Prisma.StringFilter<"Progress"> | string
+  episodeId?: Prisma.StringNullableFilter<"Progress"> | string | null
+  movieId?: Prisma.StringNullableFilter<"Progress"> | string | null
   updatedAt?: Prisma.DateTimeFilter<"Progress"> | Date | string
-  episode?: Prisma.XOR<Prisma.EpisodeScalarRelationFilter, Prisma.EpisodeWhereInput>
+  episode?: Prisma.XOR<Prisma.EpisodeNullableScalarRelationFilter, Prisma.EpisodeWhereInput> | null
+  movie?: Prisma.XOR<Prisma.MovieNullableScalarRelationFilter, Prisma.MovieWhereInput> | null
 }
 
 export type ProgressOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   position?: Prisma.SortOrder
   completed?: Prisma.SortOrder
-  episodeId?: Prisma.SortOrder
+  episodeId?: Prisma.SortOrderInput | Prisma.SortOrder
+  movieId?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   episode?: Prisma.EpisodeOrderByWithRelationInput
+  movie?: Prisma.MovieOrderByWithRelationInput
 }
 
 export type ProgressWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   episodeId?: string
+  movieId?: string
   AND?: Prisma.ProgressWhereInput | Prisma.ProgressWhereInput[]
   OR?: Prisma.ProgressWhereInput[]
   NOT?: Prisma.ProgressWhereInput | Prisma.ProgressWhereInput[]
   position?: Prisma.IntFilter<"Progress"> | number
   completed?: Prisma.BoolFilter<"Progress"> | boolean
   updatedAt?: Prisma.DateTimeFilter<"Progress"> | Date | string
-  episode?: Prisma.XOR<Prisma.EpisodeScalarRelationFilter, Prisma.EpisodeWhereInput>
-}, "id" | "episodeId">
+  episode?: Prisma.XOR<Prisma.EpisodeNullableScalarRelationFilter, Prisma.EpisodeWhereInput> | null
+  movie?: Prisma.XOR<Prisma.MovieNullableScalarRelationFilter, Prisma.MovieWhereInput> | null
+}, "id" | "episodeId" | "movieId">
 
 export type ProgressOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   position?: Prisma.SortOrder
   completed?: Prisma.SortOrder
-  episodeId?: Prisma.SortOrder
+  episodeId?: Prisma.SortOrderInput | Prisma.SortOrder
+  movieId?: Prisma.SortOrderInput | Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ProgressCountOrderByAggregateInput
   _avg?: Prisma.ProgressAvgOrderByAggregateInput
@@ -260,7 +274,8 @@ export type ProgressScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Progress"> | string
   position?: Prisma.IntWithAggregatesFilter<"Progress"> | number
   completed?: Prisma.BoolWithAggregatesFilter<"Progress"> | boolean
-  episodeId?: Prisma.StringWithAggregatesFilter<"Progress"> | string
+  episodeId?: Prisma.StringNullableWithAggregatesFilter<"Progress"> | string | null
+  movieId?: Prisma.StringNullableWithAggregatesFilter<"Progress"> | string | null
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Progress"> | Date | string
 }
 
@@ -269,14 +284,16 @@ export type ProgressCreateInput = {
   position?: number
   completed?: boolean
   updatedAt?: Date | string
-  episode: Prisma.EpisodeCreateNestedOneWithoutProgressInput
+  episode?: Prisma.EpisodeCreateNestedOneWithoutProgressInput
+  movie?: Prisma.MovieCreateNestedOneWithoutProgressInput
 }
 
 export type ProgressUncheckedCreateInput = {
   id?: string
   position?: number
   completed?: boolean
-  episodeId: string
+  episodeId?: string | null
+  movieId?: string | null
   updatedAt?: Date | string
 }
 
@@ -285,14 +302,16 @@ export type ProgressUpdateInput = {
   position?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  episode?: Prisma.EpisodeUpdateOneRequiredWithoutProgressNestedInput
+  episode?: Prisma.EpisodeUpdateOneWithoutProgressNestedInput
+  movie?: Prisma.MovieUpdateOneWithoutProgressNestedInput
 }
 
 export type ProgressUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  episodeId?: Prisma.StringFieldUpdateOperationsInput | string
+  episodeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  movieId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -300,7 +319,8 @@ export type ProgressCreateManyInput = {
   id?: string
   position?: number
   completed?: boolean
-  episodeId: string
+  episodeId?: string | null
+  movieId?: string | null
   updatedAt?: Date | string
 }
 
@@ -315,7 +335,8 @@ export type ProgressUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  episodeId?: Prisma.StringFieldUpdateOperationsInput | string
+  episodeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  movieId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -329,6 +350,7 @@ export type ProgressCountOrderByAggregateInput = {
   position?: Prisma.SortOrder
   completed?: Prisma.SortOrder
   episodeId?: Prisma.SortOrder
+  movieId?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -341,6 +363,7 @@ export type ProgressMaxOrderByAggregateInput = {
   position?: Prisma.SortOrder
   completed?: Prisma.SortOrder
   episodeId?: Prisma.SortOrder
+  movieId?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -349,11 +372,44 @@ export type ProgressMinOrderByAggregateInput = {
   position?: Prisma.SortOrder
   completed?: Prisma.SortOrder
   episodeId?: Prisma.SortOrder
+  movieId?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type ProgressSumOrderByAggregateInput = {
   position?: Prisma.SortOrder
+}
+
+export type ProgressCreateNestedOneWithoutMovieInput = {
+  create?: Prisma.XOR<Prisma.ProgressCreateWithoutMovieInput, Prisma.ProgressUncheckedCreateWithoutMovieInput>
+  connectOrCreate?: Prisma.ProgressCreateOrConnectWithoutMovieInput
+  connect?: Prisma.ProgressWhereUniqueInput
+}
+
+export type ProgressUncheckedCreateNestedOneWithoutMovieInput = {
+  create?: Prisma.XOR<Prisma.ProgressCreateWithoutMovieInput, Prisma.ProgressUncheckedCreateWithoutMovieInput>
+  connectOrCreate?: Prisma.ProgressCreateOrConnectWithoutMovieInput
+  connect?: Prisma.ProgressWhereUniqueInput
+}
+
+export type ProgressUpdateOneWithoutMovieNestedInput = {
+  create?: Prisma.XOR<Prisma.ProgressCreateWithoutMovieInput, Prisma.ProgressUncheckedCreateWithoutMovieInput>
+  connectOrCreate?: Prisma.ProgressCreateOrConnectWithoutMovieInput
+  upsert?: Prisma.ProgressUpsertWithoutMovieInput
+  disconnect?: Prisma.ProgressWhereInput | boolean
+  delete?: Prisma.ProgressWhereInput | boolean
+  connect?: Prisma.ProgressWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProgressUpdateToOneWithWhereWithoutMovieInput, Prisma.ProgressUpdateWithoutMovieInput>, Prisma.ProgressUncheckedUpdateWithoutMovieInput>
+}
+
+export type ProgressUncheckedUpdateOneWithoutMovieNestedInput = {
+  create?: Prisma.XOR<Prisma.ProgressCreateWithoutMovieInput, Prisma.ProgressUncheckedCreateWithoutMovieInput>
+  connectOrCreate?: Prisma.ProgressCreateOrConnectWithoutMovieInput
+  upsert?: Prisma.ProgressUpsertWithoutMovieInput
+  disconnect?: Prisma.ProgressWhereInput | boolean
+  delete?: Prisma.ProgressWhereInput | boolean
+  connect?: Prisma.ProgressWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProgressUpdateToOneWithWhereWithoutMovieInput, Prisma.ProgressUpdateWithoutMovieInput>, Prisma.ProgressUncheckedUpdateWithoutMovieInput>
 }
 
 export type ProgressCreateNestedOneWithoutEpisodeInput = {
@@ -392,17 +448,67 @@ export type BoolFieldUpdateOperationsInput = {
   set?: boolean
 }
 
+export type ProgressCreateWithoutMovieInput = {
+  id?: string
+  position?: number
+  completed?: boolean
+  updatedAt?: Date | string
+  episode?: Prisma.EpisodeCreateNestedOneWithoutProgressInput
+}
+
+export type ProgressUncheckedCreateWithoutMovieInput = {
+  id?: string
+  position?: number
+  completed?: boolean
+  episodeId?: string | null
+  updatedAt?: Date | string
+}
+
+export type ProgressCreateOrConnectWithoutMovieInput = {
+  where: Prisma.ProgressWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProgressCreateWithoutMovieInput, Prisma.ProgressUncheckedCreateWithoutMovieInput>
+}
+
+export type ProgressUpsertWithoutMovieInput = {
+  update: Prisma.XOR<Prisma.ProgressUpdateWithoutMovieInput, Prisma.ProgressUncheckedUpdateWithoutMovieInput>
+  create: Prisma.XOR<Prisma.ProgressCreateWithoutMovieInput, Prisma.ProgressUncheckedCreateWithoutMovieInput>
+  where?: Prisma.ProgressWhereInput
+}
+
+export type ProgressUpdateToOneWithWhereWithoutMovieInput = {
+  where?: Prisma.ProgressWhereInput
+  data: Prisma.XOR<Prisma.ProgressUpdateWithoutMovieInput, Prisma.ProgressUncheckedUpdateWithoutMovieInput>
+}
+
+export type ProgressUpdateWithoutMovieInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  position?: Prisma.IntFieldUpdateOperationsInput | number
+  completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  episode?: Prisma.EpisodeUpdateOneWithoutProgressNestedInput
+}
+
+export type ProgressUncheckedUpdateWithoutMovieInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  position?: Prisma.IntFieldUpdateOperationsInput | number
+  completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  episodeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type ProgressCreateWithoutEpisodeInput = {
   id?: string
   position?: number
   completed?: boolean
   updatedAt?: Date | string
+  movie?: Prisma.MovieCreateNestedOneWithoutProgressInput
 }
 
 export type ProgressUncheckedCreateWithoutEpisodeInput = {
   id?: string
   position?: number
   completed?: boolean
+  movieId?: string | null
   updatedAt?: Date | string
 }
 
@@ -427,12 +533,14 @@ export type ProgressUpdateWithoutEpisodeInput = {
   position?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  movie?: Prisma.MovieUpdateOneWithoutProgressNestedInput
 }
 
 export type ProgressUncheckedUpdateWithoutEpisodeInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   position?: Prisma.IntFieldUpdateOperationsInput | number
   completed?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  movieId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -443,8 +551,10 @@ export type ProgressSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   position?: boolean
   completed?: boolean
   episodeId?: boolean
+  movieId?: boolean
   updatedAt?: boolean
-  episode?: boolean | Prisma.EpisodeDefaultArgs<ExtArgs>
+  episode?: boolean | Prisma.Progress$episodeArgs<ExtArgs>
+  movie?: boolean | Prisma.Progress$movieArgs<ExtArgs>
 }, ExtArgs["result"]["progress"]>
 
 export type ProgressSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -452,8 +562,10 @@ export type ProgressSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   position?: boolean
   completed?: boolean
   episodeId?: boolean
+  movieId?: boolean
   updatedAt?: boolean
-  episode?: boolean | Prisma.EpisodeDefaultArgs<ExtArgs>
+  episode?: boolean | Prisma.Progress$episodeArgs<ExtArgs>
+  movie?: boolean | Prisma.Progress$movieArgs<ExtArgs>
 }, ExtArgs["result"]["progress"]>
 
 export type ProgressSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -461,8 +573,10 @@ export type ProgressSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   position?: boolean
   completed?: boolean
   episodeId?: boolean
+  movieId?: boolean
   updatedAt?: boolean
-  episode?: boolean | Prisma.EpisodeDefaultArgs<ExtArgs>
+  episode?: boolean | Prisma.Progress$episodeArgs<ExtArgs>
+  movie?: boolean | Prisma.Progress$movieArgs<ExtArgs>
 }, ExtArgs["result"]["progress"]>
 
 export type ProgressSelectScalar = {
@@ -470,30 +584,36 @@ export type ProgressSelectScalar = {
   position?: boolean
   completed?: boolean
   episodeId?: boolean
+  movieId?: boolean
   updatedAt?: boolean
 }
 
-export type ProgressOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "position" | "completed" | "episodeId" | "updatedAt", ExtArgs["result"]["progress"]>
+export type ProgressOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "position" | "completed" | "episodeId" | "movieId" | "updatedAt", ExtArgs["result"]["progress"]>
 export type ProgressInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  episode?: boolean | Prisma.EpisodeDefaultArgs<ExtArgs>
+  episode?: boolean | Prisma.Progress$episodeArgs<ExtArgs>
+  movie?: boolean | Prisma.Progress$movieArgs<ExtArgs>
 }
 export type ProgressIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  episode?: boolean | Prisma.EpisodeDefaultArgs<ExtArgs>
+  episode?: boolean | Prisma.Progress$episodeArgs<ExtArgs>
+  movie?: boolean | Prisma.Progress$movieArgs<ExtArgs>
 }
 export type ProgressIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  episode?: boolean | Prisma.EpisodeDefaultArgs<ExtArgs>
+  episode?: boolean | Prisma.Progress$episodeArgs<ExtArgs>
+  movie?: boolean | Prisma.Progress$movieArgs<ExtArgs>
 }
 
 export type $ProgressPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Progress"
   objects: {
-    episode: Prisma.$EpisodePayload<ExtArgs>
+    episode: Prisma.$EpisodePayload<ExtArgs> | null
+    movie: Prisma.$MoviePayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     position: number
     completed: boolean
-    episodeId: string
+    episodeId: string | null
+    movieId: string | null
     updatedAt: Date
   }, ExtArgs["result"]["progress"]>
   composites: {}
@@ -889,7 +1009,8 @@ readonly fields: ProgressFieldRefs;
  */
 export interface Prisma__ProgressClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  episode<T extends Prisma.EpisodeDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.EpisodeDefaultArgs<ExtArgs>>): Prisma.Prisma__EpisodeClient<runtime.Types.Result.GetResult<Prisma.$EpisodePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  episode<T extends Prisma.Progress$episodeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Progress$episodeArgs<ExtArgs>>): Prisma.Prisma__EpisodeClient<runtime.Types.Result.GetResult<Prisma.$EpisodePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  movie<T extends Prisma.Progress$movieArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Progress$movieArgs<ExtArgs>>): Prisma.Prisma__MovieClient<runtime.Types.Result.GetResult<Prisma.$MoviePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -923,6 +1044,7 @@ export interface ProgressFieldRefs {
   readonly position: Prisma.FieldRef<"Progress", 'Int'>
   readonly completed: Prisma.FieldRef<"Progress", 'Boolean'>
   readonly episodeId: Prisma.FieldRef<"Progress", 'String'>
+  readonly movieId: Prisma.FieldRef<"Progress", 'String'>
   readonly updatedAt: Prisma.FieldRef<"Progress", 'DateTime'>
 }
     
@@ -1320,6 +1442,44 @@ export type ProgressDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many Progresses to delete.
    */
   limit?: number
+}
+
+/**
+ * Progress.episode
+ */
+export type Progress$episodeArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Episode
+   */
+  select?: Prisma.EpisodeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Episode
+   */
+  omit?: Prisma.EpisodeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EpisodeInclude<ExtArgs> | null
+  where?: Prisma.EpisodeWhereInput
+}
+
+/**
+ * Progress.movie
+ */
+export type Progress$movieArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Movie
+   */
+  select?: Prisma.MovieSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Movie
+   */
+  omit?: Prisma.MovieOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MovieInclude<ExtArgs> | null
+  where?: Prisma.MovieWhereInput
 }
 
 /**

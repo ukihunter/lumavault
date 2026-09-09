@@ -50,7 +50,7 @@ model Movie {
   library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 
   mediaSource MediaSource?
-
+  progress    Progress?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -169,8 +169,13 @@ model Progress {
   position    Int      @default(0)
   completed   Boolean  @default(false)
 
-  episodeId   String   @unique
-  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  episodeId   String?  @unique
+  episode     Episode? @relation(fields: [episodeId],references: [id],onDelete: Cascade)
+
+  movieId     String?  @unique
+  movie       Movie?   @relation(fields: [movieId],references: [id],onDelete: Cascade)
 
   updatedAt   DateTime @updatedAt
+
+  @@index([updatedAt])
 }

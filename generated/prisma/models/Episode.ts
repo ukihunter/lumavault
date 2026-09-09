@@ -480,11 +480,6 @@ export type EpisodeNullableScalarRelationFilter = {
   isNot?: Prisma.EpisodeWhereInput | null
 }
 
-export type EpisodeScalarRelationFilter = {
-  is?: Prisma.EpisodeWhereInput
-  isNot?: Prisma.EpisodeWhereInput
-}
-
 export type EpisodeCreateNestedManyWithoutSeasonInput = {
   create?: Prisma.XOR<Prisma.EpisodeCreateWithoutSeasonInput, Prisma.EpisodeUncheckedCreateWithoutSeasonInput> | Prisma.EpisodeCreateWithoutSeasonInput[] | Prisma.EpisodeUncheckedCreateWithoutSeasonInput[]
   connectOrCreate?: Prisma.EpisodeCreateOrConnectWithoutSeasonInput | Prisma.EpisodeCreateOrConnectWithoutSeasonInput[]
@@ -549,10 +544,12 @@ export type EpisodeCreateNestedOneWithoutProgressInput = {
   connect?: Prisma.EpisodeWhereUniqueInput
 }
 
-export type EpisodeUpdateOneRequiredWithoutProgressNestedInput = {
+export type EpisodeUpdateOneWithoutProgressNestedInput = {
   create?: Prisma.XOR<Prisma.EpisodeCreateWithoutProgressInput, Prisma.EpisodeUncheckedCreateWithoutProgressInput>
   connectOrCreate?: Prisma.EpisodeCreateOrConnectWithoutProgressInput
   upsert?: Prisma.EpisodeUpsertWithoutProgressInput
+  disconnect?: Prisma.EpisodeWhereInput | boolean
+  delete?: Prisma.EpisodeWhereInput | boolean
   connect?: Prisma.EpisodeWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.EpisodeUpdateToOneWithWhereWithoutProgressInput, Prisma.EpisodeUpdateWithoutProgressInput>, Prisma.EpisodeUncheckedUpdateWithoutProgressInput>
 }
