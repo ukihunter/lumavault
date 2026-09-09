@@ -53,21 +53,24 @@ function normalizeTitle(title: string): string {
     // Replace filename separators with spaces.
     .replace(/[_\\]+/g, " ")
 
-    // Remove years in parentheses or brackets.
+    // Remove years in parentheses.
     .replace(/\(\s*(19|20)\d{2}\s*\)/g, " ")
+
+    // Remove years in brackets.
     .replace(/\[\s*(19|20)\d{2}\s*\]/g, " ")
 
     // Remove standalone years.
     .replace(/\b(19|20)\d{2}\b/g, " ")
 
     // Normalize separators and punctuation.
-    .replace(/[-.:_,]+/g, " ")
+    .replace(/[-.:\_,]+/g, " ")
 
     // Keep only letters, numbers and spaces.
     .replace(/[^a-z0-9\s]/g, " ")
 
     // Collapse whitespace.
     .replace(/\s+/g, " ")
+
     .trim();
 }
 
@@ -82,23 +85,24 @@ function normalizeTitle(title: string): string {
  * Ben 10_ Omniverse (2012)
  * -> Ben 10 Omniverse
  *
- * Ben 10 - Generator Rex Heroes United (2011)
- * -> Ben 10 Generator Rex Heroes United
+ * Ben 10 (2005)
+ * -> Ben 10
  */
 function cleanSearchTitle(title: string): string {
   return title
-    // Filename separators.
     .replace(/[_\\]+/g, " ")
 
-    // Remove years in parentheses/brackets.
+    // Remove years in parentheses.
     .replace(/\(\s*(19|20)\d{2}\s*\)/g, " ")
+
+    // Remove years in brackets.
     .replace(/\[\s*(19|20)\d{2}\s*\]/g, " ")
 
-    // Remove standalone year.
+    // Remove standalone years.
     .replace(/\b(19|20)\d{2}\b/g, " ")
 
     // Normalize separators.
-    .replace(/[-.:_,]+/g, " ")
+    .replace(/[-.:\_,]+/g, " ")
 
     // Collapse spaces.
     .replace(/\s+/g, " ")
@@ -143,8 +147,10 @@ function titleScore(
   const localWords = new Set(local.split(" "));
   const remoteWords = new Set(remote.split(" "));
 
-  const intersection = [...localWords].filter(
-    (word) => remoteWords.has(word),
+  const intersection = [
+    ...localWords,
+  ].filter((word) =>
+    remoteWords.has(word),
   );
 
   const union = new Set([
@@ -158,6 +164,12 @@ function titleScore(
   );
 }
 
+/**
+ * General title/year score.
+ *
+ * The series matcher below uses stricter year rules than this helper,
+ * but movie matching can continue using the normal weighted score.
+ */
 function matchScore(
   localTitle: string,
   localYear: number | null,
@@ -178,7 +190,9 @@ function matchScore(
   } else if (
     localYear &&
     remoteYear &&
-    Math.abs(localYear - remoteYear) === 1
+    Math.abs(
+      localYear - remoteYear,
+    ) === 1
   ) {
     score += 0.05;
   }
@@ -193,8 +207,12 @@ function addError(
   result.errors.push(message);
 }
 
+/* -------------------------------------------------------------------------- */
+/* Movie candidates                                                           */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Search movies using several increasingly permissive queries.
+ * Search movies using the year first, then fallback queries.
  */
 async function findMovieCandidates(
   title: string,
@@ -202,74 +220,47 @@ async function findMovieCandidates(
 ) {
   const searchTitle = cleanSearchTitle(title);
 
-  const queries = [
-    {
-      title: searchTitle,
-      year,
-    },
-    {
-      title: searchTitle,
-      year: null,
-    },
-    {
-      title: normalizeTitle(searchTitle),
-      year: null,
-    },
-  ];
-
-  const seen = new Map<number, (typeof queries)[number]>();
-
-  for (const query of queries) {
-    if (!query.title) {
-      continue;
-    }
-
-    try {
-      const results = await searchMovies(
-        query.title,
-        query.year,
-      );
-
-      for (const movie of results) {
-        if (!seen.has(movie.id)) {
-          seen.set(movie.id, query);
-        }
-      }
-
-      if (seen.size > 0) {
-        break;
-      }
-    } catch {
-      // Try the next fallback query.
-    }
-  }
-
-  // We don't need the query metadata here.
-  // Return only unique TMDB candidates.
-  if (seen.size === 0) {
+  if (!searchTitle) {
     return [];
   }
 
-  const firstQueryResults = await Promise.all(
-    [],
-  );
+  /**
+   * First try the most precise search.
+   */
+  if (year && year > 0) {
+    try {
+      const results = await searchMovies(
+        searchTitle,
+        year,
+      );
 
-  void firstQueryResults;
+      if (results.length > 0) {
+        return results;
+      }
+    } catch {
+      // Continue to fallback.
+    }
+  }
 
-  // Re-run using the most useful query so that
-  // the returned objects are the actual TMDB results.
-  for (const query of queries) {
-    if (!query.title) {
+  /**
+   * Fallback without year.
+   */
+  const fallbackTitles = [
+    searchTitle,
+    normalizeTitle(searchTitle),
+  ];
+
+  for (const query of fallbackTitles) {
+    if (!query) {
       continue;
     }
 
     try {
       const results = await searchMovies(
-        query.title,
-        query.year,
+        query,
       );
 
-      if (results.length) {
+      if (results.length > 0) {
         return results;
       }
     } catch {
@@ -280,8 +271,19 @@ async function findMovieCandidates(
   return [];
 }
 
+/* -------------------------------------------------------------------------- */
+/* TV candidates                                                              */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Search TV shows using several increasingly permissive queries.
+ * Search TV shows using the year whenever one is known.
+ *
+ * This is particularly important for:
+ *
+ * Ben 10 (2005)
+ * Ben 10 (2016)
+ *
+ * because TMDB uses the exact same display title for both.
  */
 async function findTvCandidates(
   title: string,
@@ -289,37 +291,60 @@ async function findTvCandidates(
 ) {
   const searchTitle = cleanSearchTitle(title);
 
-  const queries = [
-    {
-      title: searchTitle,
-      year,
-    },
-    {
-      title: searchTitle,
-      year: null,
-    },
-    {
-      title: normalizeTitle(searchTitle),
-      year: null,
-    },
+  if (!searchTitle) {
+    return [];
+  }
+
+  /**
+   * FIRST:
+   *
+   * Search using the known local year.
+   *
+   * This should give us the most precise candidate set.
+   */
+  if (year && year > 0) {
+    try {
+      const yearResults = await searchTv(
+        searchTitle,
+        year,
+      );
+
+      if (yearResults.length > 0) {
+        return yearResults;
+      }
+    } catch {
+      // Continue to fallback search.
+    }
+  }
+
+  /**
+   * FALLBACK:
+   *
+   * Search without year only when the
+   * year-specific search returned nothing.
+   *
+   * syncSeries() still performs strict
+   * year validation before accepting
+   * the result.
+   */
+  const fallbackTitles = [
+    searchTitle,
+    normalizeTitle(searchTitle),
   ];
 
-  for (const query of queries) {
-    if (!query.title) {
+  for (const query of fallbackTitles) {
+    if (!query) {
       continue;
     }
 
     try {
-      const results = await searchTv(
-        query.title,
-        query.year,
-      );
+      const results = await searchTv(query);
 
-      if (results.length) {
+      if (results.length > 0) {
         return results;
       }
     } catch {
-      // Try the next fallback query.
+      // Continue fallback.
     }
   }
 
@@ -342,6 +367,10 @@ async function syncMovie(
   force: boolean,
   result: MetadataSyncResult,
 ) {
+  /**
+   * Nothing to do when metadata already exists
+   * and force mode is disabled.
+   */
   if (
     !force &&
     movie.tmdbId &&
@@ -353,11 +382,19 @@ async function syncMovie(
   }
 
   try {
-    let tmdbId = movie.tmdbId;
-
-    /* Existing TMDB ID */
-    if (tmdbId) {
-      const details = await getMovieDetails(tmdbId);
+    /**
+     * Existing TMDB ID.
+     *
+     * With force=false, keep using the existing
+     * matched TMDB ID.
+     *
+     * With force=true, deliberately ignore it and
+     * perform a fresh search.
+     */
+    if (movie.tmdbId && !force) {
+      const details = await getMovieDetails(
+        movie.tmdbId,
+      );
 
       await prisma.movie.update({
         where: {
@@ -368,7 +405,8 @@ async function syncMovie(
           tmdbId: details.id,
 
           title:
-            details.title || movie.title,
+            details.title ||
+            movie.title,
 
           year:
             getYearFromDate(
@@ -378,16 +416,19 @@ async function syncMovie(
           overview:
             details.overview || null,
 
-          poster: tmdbPoster(
-            details.poster_path,
-          ),
+          poster:
+            tmdbPoster(
+              details.poster_path,
+            ),
 
-          backdrop: tmdbBackdrop(
-            details.backdrop_path,
-          ),
+          backdrop:
+            tmdbBackdrop(
+              details.backdrop_path,
+            ),
 
           voteAverage:
-            details.vote_average ?? null,
+            details.vote_average ??
+            null,
         },
       });
 
@@ -395,7 +436,9 @@ async function syncMovie(
       return;
     }
 
-    /* Search TMDB */
+    /**
+     * Fresh TMDB search.
+     */
     const candidates =
       await findMovieCandidates(
         movie.title,
@@ -407,7 +450,11 @@ async function syncMovie(
 
       addError(
         result,
-        `Movie "${movie.title}": no TMDB match`,
+        `Movie "${movie.title}"${
+          movie.year
+            ? ` (${movie.year})`
+            : ""
+        }: no TMDB match`,
       );
 
       return;
@@ -417,18 +464,20 @@ async function syncMovie(
       .map((candidate) => ({
         candidate,
 
+        remoteYear:
+          getYearFromDate(
+            candidate.release_date,
+          ),
+
         score: matchScore(
           movie.title,
           movie.year,
-
           candidate.title,
-
           getYearFromDate(
             candidate.release_date,
           ),
         ),
       }))
-
       .sort(
         (a, b) =>
           b.score - a.score,
@@ -436,21 +485,57 @@ async function syncMovie(
 
     const best = scored[0];
 
-    if (
-      !best ||
-      best.score < 0.55
-    ) {
+    if (!best) {
       result.movies.failed++;
 
       addError(
         result,
-        `Movie "${movie.title}": weak TMDB match`,
+        `Movie "${movie.title}": no suitable TMDB match`,
       );
 
       return;
     }
 
-    /* Get full details */
+    /**
+     * Reject an obviously wrong year when
+     * the local movie year is known.
+     */
+    if (
+      movie.year &&
+      best.remoteYear &&
+      Math.abs(
+        movie.year -
+          best.remoteYear,
+      ) > 1
+    ) {
+      result.movies.failed++;
+
+      addError(
+        result,
+        `Movie "${movie.title}" (${movie.year}): best TMDB candidate "${best.candidate.title}" (${best.remoteYear}) has the wrong year`,
+      );
+
+      return;
+    }
+
+    if (best.score < 0.55) {
+      result.movies.failed++;
+
+      addError(
+        result,
+        `Movie "${movie.title}"${
+          movie.year
+            ? ` (${movie.year})`
+            : ""
+        }: weak TMDB match`,
+      );
+
+      return;
+    }
+
+    /**
+     * Get full TMDB details.
+     */
     const details =
       await getMovieDetails(
         best.candidate.id,
@@ -465,7 +550,8 @@ async function syncMovie(
         tmdbId: details.id,
 
         title:
-          details.title || movie.title,
+          details.title ||
+          movie.title,
 
         year:
           getYearFromDate(
@@ -486,17 +572,32 @@ async function syncMovie(
           ),
 
         voteAverage:
-          details.vote_average ?? null,
+          details.vote_average ??
+          null,
       },
     });
 
     result.movies.matched++;
+
+    console.log(
+      `[Metadata] Movie "${movie.title}"${
+        movie.year
+          ? ` (${movie.year})`
+          : ""
+      } → "${details.title}" (${getYearFromDate(
+        details.release_date,
+      ) ?? "unknown"}) [TMDB ${details.id}]`,
+    );
   } catch (error) {
     result.movies.failed++;
 
     addError(
       result,
-      `Movie "${movie.title}": ${
+      `Movie "${movie.title}"${
+        movie.year
+          ? ` (${movie.year})`
+          : ""
+      }: ${
         error instanceof Error
           ? error.message
           : "Unknown error"
@@ -521,6 +622,10 @@ async function syncSeries(
   force: boolean,
   result: MetadataSyncResult,
 ) {
+  /**
+   * Existing metadata is good enough when
+   * force mode is disabled.
+   */
   if (
     !force &&
     series.tmdbId &&
@@ -532,8 +637,28 @@ async function syncSeries(
   }
 
   try {
-    /* Existing TMDB ID */
-    if (series.tmdbId) {
+    /**
+     * IMPORTANT:
+     *
+     * Only reuse an existing TMDB ID when force=false.
+     *
+     * This is the key fix for the Ben 10 problem.
+     *
+     * Before:
+     *
+     *   force=true
+     *      ↓
+     *   existing wrong tmdbId
+     *      ↓
+     *   getTvDetails(oldId)
+     *
+     * Now:
+     *
+     *   force=true
+     *      ↓
+     *   fresh search using title + year
+     */
+    if (series.tmdbId && !force) {
       const details =
         await getTvDetails(
           series.tmdbId,
@@ -570,15 +695,25 @@ async function syncSeries(
             ),
 
           voteAverage:
-            details.vote_average ?? null,
+            details.vote_average ??
+            null,
         },
       });
 
       result.series.matched++;
+
+      console.log(
+        `[Metadata] Refreshed series "${series.title}" → "${details.name}" (${getYearFromDate(
+          details.first_air_date,
+        ) ?? "unknown"}) [TMDB ${details.id}]`,
+      );
+
       return;
     }
 
-    /* Search TMDB */
+    /**
+     * Fresh TMDB search.
+     */
     const candidates =
       await findTvCandidates(
         series.title,
@@ -590,55 +725,248 @@ async function syncSeries(
 
       addError(
         result,
-        `Series "${series.title}": no TMDB match`,
+        `Series "${series.title}"${
+          series.year
+            ? ` (${series.year})`
+            : ""
+        }: no TMDB match`,
       );
 
       return;
     }
 
+    /**
+     * Score candidates.
+     *
+     * Exact year is heavily favored.
+     *
+     * This is critical for shows that share
+     * the exact same display title.
+     */
     const scored = candidates
-      .map((candidate) => ({
-        candidate,
-
-        score: matchScore(
-          series.title,
-          series.year,
-
-          candidate.name,
-
+      .map((candidate) => {
+        const remoteYear =
           getYearFromDate(
             candidate.first_air_date,
-          ),
-        ),
-      }))
+          );
 
+        let score = titleScore(
+          series.title,
+          candidate.name,
+        );
+
+        /**
+         * YEAR MATCHING
+         *
+         * Exact year:
+         *      +0.50
+         *
+         * One year difference:
+         *      +0.05
+         *
+         * Different year:
+         *      -0.50
+         *
+         * This means:
+         *
+         * Ben 10 (2005)
+         *      beats
+         * Ben 10 (2016)
+         *
+         * even though their titles are identical.
+         */
+        if (
+          series.year &&
+          remoteYear
+        ) {
+          if (
+            series.year ===
+            remoteYear
+          ) {
+            score += 0.5;
+          } else if (
+            Math.abs(
+              series.year -
+                remoteYear,
+            ) === 1
+          ) {
+            score += 0.05;
+          } else {
+            score -= 0.5;
+          }
+        }
+
+        return {
+          candidate,
+          remoteYear,
+          score,
+        };
+      })
       .sort(
         (a, b) =>
           b.score - a.score,
       );
 
+    /**
+     * Diagnostic logging.
+     *
+     * This will make ambiguous matches easy
+     * to see in the terminal.
+     */
+    console.log(
+      `[Metadata] Series candidates for "${series.title}"${
+        series.year
+          ? ` (${series.year})`
+          : ""
+      }:`,
+      scored.map((item) => ({
+        id: item.candidate.id,
+        name: item.candidate.name,
+        year: item.remoteYear,
+        score: Number(
+          item.score.toFixed(3),
+        ),
+      })),
+    );
+
     const best = scored[0];
 
-    if (
-      !best ||
-      best.score < 0.55
-    ) {
+    if (!best) {
       result.series.failed++;
 
       addError(
         result,
-        `Series "${series.title}": weak TMDB match`,
+        `Series "${series.title}": no suitable TMDB match`,
       );
 
       return;
     }
 
-    /* Get full series details */
+    /**
+     * HARD YEAR SAFETY CHECK
+     *
+     * If we know the local year and TMDB
+     * provides a year, don't accept a result
+     * from a completely different year.
+     *
+     * Example:
+     *
+     * Local: Ben 10 (2005)
+     *
+     * TMDB: Ben 10 (2016)
+     *
+     * → REJECT
+     */
+    if (
+      series.year &&
+      best.remoteYear &&
+      Math.abs(
+        series.year -
+          best.remoteYear,
+      ) > 1
+    ) {
+      result.series.failed++;
+
+      addError(
+        result,
+        `Series "${series.title}" (${series.year}): best TMDB candidate "${best.candidate.name}" (${best.remoteYear}) has the wrong year`,
+      );
+
+      console.warn(
+        `[Metadata] Rejected wrong-year series match`,
+        {
+          localTitle: series.title,
+          localYear: series.year,
+
+          tmdbId:
+            best.candidate.id,
+
+          tmdbTitle:
+            best.candidate.name,
+
+          tmdbYear:
+            best.remoteYear,
+
+          score:
+            best.score,
+        },
+      );
+
+      return;
+    }
+
+    if (best.score < 0.55) {
+      result.series.failed++;
+
+      addError(
+        result,
+        `Series "${series.title}"${
+          series.year
+            ? ` (${series.year})`
+            : ""
+        }: weak TMDB match`,
+      );
+
+      return;
+    }
+
+    /**
+     * Get the complete selected TMDB series.
+     */
     const details =
       await getTvDetails(
         best.candidate.id,
       );
 
+    /**
+     * Final defensive year check.
+     *
+     * The detail response may contain a more
+     * authoritative first_air_date than the search result.
+     */
+    const detailsYear =
+      getYearFromDate(
+        details.first_air_date,
+      );
+
+    if (
+      series.year &&
+      detailsYear &&
+      Math.abs(
+        series.year -
+          detailsYear,
+      ) > 1
+    ) {
+      result.series.failed++;
+
+      addError(
+        result,
+        `Series "${series.title}" (${series.year}): selected TMDB series "${details.name}" (${detailsYear}) has the wrong year`,
+      );
+
+      console.warn(
+        `[Metadata] Rejected wrong-year detail response`,
+        {
+          localTitle: series.title,
+          localYear: series.year,
+
+          tmdbId:
+            details.id,
+
+          tmdbTitle:
+            details.name,
+
+          tmdbYear:
+            detailsYear,
+        },
+      );
+
+      return;
+    }
+
+    /**
+     * Save the corrected metadata.
+     */
     await prisma.series.update({
       where: {
         id: series.id,
@@ -652,9 +980,8 @@ async function syncSeries(
           series.title,
 
         year:
-          getYearFromDate(
-            details.first_air_date,
-          ) ?? series.year,
+          detailsYear ??
+          series.year,
 
         overview:
           details.overview || null,
@@ -670,17 +997,30 @@ async function syncSeries(
           ),
 
         voteAverage:
-          details.vote_average ?? null,
+          details.vote_average ??
+          null,
       },
     });
 
     result.series.matched++;
+
+    console.log(
+      `[Metadata] Matched series "${series.title}"${
+        series.year
+          ? ` (${series.year})`
+          : ""
+      } → "${details.name}" (${detailsYear ?? "unknown"}) [TMDB ${details.id}]`,
+    );
   } catch (error) {
     result.series.failed++;
 
     addError(
       result,
-      `Series "${series.title}": ${
+      `Series "${series.title}"${
+        series.year
+          ? ` (${series.year})`
+          : ""
+      }: ${
         error instanceof Error
           ? error.message
           : "Unknown error"
@@ -713,6 +1053,10 @@ async function syncEpisode(
   force: boolean,
   result: MetadataSyncResult,
 ) {
+  /**
+   * Existing thumbnail is enough when
+   * force mode is disabled.
+   */
   if (
     !force &&
     episode.thumbnail
@@ -746,20 +1090,27 @@ async function syncEpisode(
   }
 
   try {
-    /*
-     * TMDB episode lookup:
+    /**
+     * Use the already matched series TMDB ID.
      *
-     * /tv/{seriesId}/season/{season}/episode/{episode}
+     * Example:
      *
-     * We use the already matched series TMDB ID,
-     * so there is no need to search "Episode 6".
+     * Ben 10 (2005)
+     *   → TMDB 4686
+     *
+     * Episode 6:
+     *   /tv/4686/season/1/episode/6
+     *
+     * Ben 10 (2016)
+     *   → TMDB 68295
+     *
+     * Episode 6:
+     *   /tv/68295/season/1/episode/6
      */
     const details =
       await getTvEpisodeDetails(
         seriesTmdbId,
-
         episode.season.number,
-
         episode.number,
       );
 
@@ -768,9 +1119,11 @@ async function syncEpisode(
         details.still_path,
       );
 
-    /*
-     * Some episodes simply don't have
-     * an image on TMDB.
+    /**
+     * Some episodes do not have artwork on TMDB.
+     *
+     * Still update title, description and
+     * runtime when available.
      */
     if (!thumbnail) {
       result.episodes.failed++;
@@ -790,9 +1143,6 @@ async function syncEpisode(
         )}": TMDB has no still image`,
       );
 
-      /*
-       * Still update metadata if available.
-       */
       await prisma.episode.update({
         where: {
           id: episode.id,
@@ -804,10 +1154,12 @@ async function syncEpisode(
             episode.title,
 
           description:
-            details.overview || null,
+            details.overview ||
+            null,
 
           duration:
-            details.runtime ?? null,
+            details.runtime ??
+            null,
         },
       });
 
@@ -827,14 +1179,30 @@ async function syncEpisode(
           episode.title,
 
         description:
-          details.overview || null,
+          details.overview ||
+          null,
 
         duration:
-          details.runtime ?? null,
+          details.runtime ??
+          null,
       },
     });
 
     result.episodes.matched++;
+
+    console.log(
+      `[Metadata] Episode "${episode.season.series.title}" S${String(
+        episode.season.number,
+      ).padStart(
+        2,
+        "0",
+      )}E${String(
+        episode.number,
+      ).padStart(
+        2,
+        "0",
+      )} → "${details.name}"`,
+    );
   } catch (error) {
     result.episodes.failed++;
 
@@ -942,9 +1310,14 @@ export async function syncMetadata(
         backdrop: true,
       },
 
-      orderBy: {
-        title: "asc",
-      },
+      orderBy: [
+        {
+          title: "asc",
+        },
+        {
+          year: "asc",
+        },
+      ],
     });
 
   result.series.total =
@@ -962,12 +1335,13 @@ export async function syncMetadata(
   /* Episodes                                                                 */
   /* ------------------------------------------------------------------------ */
 
-  /*
-   * Important:
+  /**
+   * IMPORTANT:
    *
-   * We load episodes AFTER series synchronization.
-   * That means their related Series records now contain
-   * the newly assigned TMDB IDs.
+   * Episodes are loaded AFTER series synchronization.
+   *
+   * This means their related Series records
+   * now contain the corrected TMDB IDs.
    */
   if (syncEpisodes) {
     const episodes =
