@@ -2,6 +2,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -9,21 +10,34 @@ import {
 
 import {
   Captions,
+  Check,
   Maximize,
   Pause,
   Play,
   RotateCcw,
   RotateCw,
+  Search,
   Settings,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 
 type SubtitleTrack = {
   language: string;
   label: string;
   src: string;
-  default?: boolean;
+};
+
+type SubtitleSearchResult = {
+  fileId: string;
+  language: string;
+  label: string;
+  release: string | null;
+  downloadCount: number;
+  hearingImpaired: boolean;
+  fileName: string | null;
+  url: string;
 };
 
 type MovieVideoPlayerProps = {
@@ -38,14 +52,27 @@ export function MovieVideoPlayer({
   poster,
 }: MovieVideoPlayerProps) {
   const videoRef =
-    useRef<HTMLVideoElement | null>(
-      null,
-    );
+    useRef<HTMLVideoElement | null>(null);
 
   const containerRef =
-    useRef<HTMLDivElement | null>(
-      null,
-    );
+    useRef<HTMLDivElement | null>(null);
+
+  const subtitleTrackRefs =
+    useRef<
+      Record<
+        string,
+        HTMLTrackElement | null
+      >
+    >({});
+
+  const controlsTimeout =
+    useRef<
+      ReturnType<typeof setTimeout> | null
+    >(null);
+
+  /* ---------------------------------------------------------------------- */
+  /* Video state                                                            */
+  /* ---------------------------------------------------------------------- */
 
   const [playing, setPlaying] =
     useState(false);
@@ -68,39 +95,45 @@ export function MovieVideoPlayer({
   const [playbackRate, setPlaybackRate] =
     useState(1);
 
-  const [subtitles, setSubtitles] =
+  /* ---------------------------------------------------------------------- */
+  /* Subtitle state                                                         */
+  /* ---------------------------------------------------------------------- */
+
+  const [subtitleMenuOpen, setSubtitleMenuOpen] =
+    useState(false);
+
+  const [subtitleTracks, setSubtitleTracks] =
     useState<SubtitleTrack[]>([]);
 
-  const [subtitlesLoading, setSubtitlesLoading] =
+  const [subtitleResults, setSubtitleResults] =
+    useState<SubtitleSearchResult[]>([]);
+
+  const [subtitleSearching, setSubtitleSearching] =
+    useState(false);
+
+  const [subtitleDownloading, setSubtitleDownloading] =
     useState(false);
 
   const [subtitleError, setSubtitleError] =
     useState<string | null>(null);
 
   const [selectedSubtitle, setSelectedSubtitle] =
-    useState("off");
-
-  const controlsTimeout =
-    useRef<ReturnType<
-      typeof setTimeout
-    > | null>(null);
+    useState<string>("off");
 
   /* ---------------------------------------------------------------------- */
-  /* Load saved movie position                                               */
+  /* Saved movie position                                                   */
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
-    const video =
-      videoRef.current;
+    const video = videoRef.current;
 
     if (!video) {
       return;
     }
 
-    const saved =
-      localStorage.getItem(
-        `lumavault-movie-${movieId}`,
-      );
+    const saved = localStorage.getItem(
+      `lumavault-movie-${movieId}`,
+    );
 
     if (!saved) {
       return;
@@ -115,116 +148,42 @@ export function MovieVideoPlayer({
       return;
     }
 
-    const restore = () => {
+    const restorePosition = () => {
       if (
-        Number.isFinite(
-          video.duration,
-        ) &&
-        position <
-          video.duration - 5
+        Number.isFinite(video.duration) &&
+        position < video.duration - 5
       ) {
-        video.currentTime =
-          position;
+        video.currentTime = position;
       }
     };
 
-    if (
-      video.readyState >= 1
-    ) {
-      restore();
-    } else {
-      video.addEventListener(
-        "loadedmetadata",
-        restore,
-        {
-          once: true,
-        },
-      );
-
-      return () =>
-        video.removeEventListener(
-          "loadedmetadata",
-          restore,
-        );
-    }
-  }, [movieId]);
-
-  /* ---------------------------------------------------------------------- */
-  /* Load subtitles                                                          */
-  /* ---------------------------------------------------------------------- */
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadSubtitles() {
-      try {
-        setSubtitlesLoading(true);
-        setSubtitleError(null);
-
-        const response =
-          await fetch(
-            `/api/subtitles/movies/${movieId}`,
-            {
-              cache: "no-store",
-            },
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to load subtitles",
-          );
-        }
-
-        const data =
-          await response.json();
-
-        if (!data.success) {
-          throw new Error(
-            data.error ??
-              "Failed to load subtitles",
-          );
-        }
-
-        if (!cancelled) {
-          setSubtitles(
-            data.subtitles ?? [],
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Subtitle loading failed:",
-          error,
-        );
-
-        if (!cancelled) {
-          setSubtitles([]);
-          setSubtitleError(
-            error instanceof Error
-              ? error.message
-              : "Failed to load subtitles",
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setSubtitlesLoading(false);
-        }
-      }
+    if (video.readyState >= 1) {
+      restorePosition();
+      return;
     }
 
-    loadSubtitles();
+    video.addEventListener(
+      "loadedmetadata",
+      restorePosition,
+      {
+        once: true,
+      },
+    );
 
     return () => {
-      cancelled = true;
+      video.removeEventListener(
+        "loadedmetadata",
+        restorePosition,
+      );
     };
   }, [movieId]);
 
   /* ---------------------------------------------------------------------- */
-  /* Save progress                                                           */
+  /* Video events + save progress                                           */
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
-    const video =
-      videoRef.current;
+    const video = videoRef.current;
 
     if (!video) {
       return;
@@ -233,9 +192,7 @@ export function MovieVideoPlayer({
     const saveProgress = () => {
       if (
         video.currentTime > 0 &&
-        !Number.isNaN(
-          video.currentTime,
-        )
+        Number.isFinite(video.currentTime)
       ) {
         localStorage.setItem(
           `lumavault-movie-${movieId}`,
@@ -249,16 +206,12 @@ export function MovieVideoPlayer({
     };
 
     const handleTimeUpdate = () => {
-      setCurrentTime(
-        video.currentTime,
-      );
+      setCurrentTime(video.currentTime);
     };
 
     const handleLoadedMetadata = () => {
       setDuration(
-        Number.isFinite(
-          video.duration,
-        )
+        Number.isFinite(video.duration)
           ? video.duration
           : 0,
       );
@@ -313,9 +266,7 @@ export function MovieVideoPlayer({
       );
 
     return () => {
-      window.clearInterval(
-        interval,
-      );
+      window.clearInterval(interval);
 
       saveProgress();
 
@@ -347,16 +298,14 @@ export function MovieVideoPlayer({
   }, [movieId]);
 
   /* ---------------------------------------------------------------------- */
-  /* Controls                                                                */
+  /* Controls                                                               */
   /* ---------------------------------------------------------------------- */
 
   const showControlsTemporarily =
-    () => {
+    useCallback(() => {
       setShowControls(true);
 
-      if (
-        controlsTimeout.current
-      ) {
+      if (controlsTimeout.current) {
         clearTimeout(
           controlsTimeout.current,
         );
@@ -371,44 +320,61 @@ export function MovieVideoPlayer({
             setShowControls(false);
           }
         }, 2500);
+    }, []);
+
+  useEffect(() => {
+    return () => {
+      if (controlsTimeout.current) {
+        clearTimeout(
+          controlsTimeout.current,
+        );
+      }
     };
+  }, []);
 
   const togglePlay = async () => {
-    const video =
-      videoRef.current;
+    const video = videoRef.current;
 
     if (!video) {
       return;
     }
 
-    if (video.paused) {
-      await video.play();
-    } else {
-      video.pause();
-    }
+    try {
+      if (video.paused) {
+        await video.play();
+      } else {
+        video.pause();
+      }
 
-    showControlsTemporarily();
+      showControlsTemporarily();
+    } catch (error) {
+      console.error(
+        "Unable to toggle playback:",
+        error,
+      );
+    }
   };
 
-  const seek = (
-    seconds: number,
-  ) => {
-    const video =
-      videoRef.current;
+  const seek = (seconds: number) => {
+    const video = videoRef.current;
 
     if (!video) {
       return;
     }
 
-    video.currentTime =
-      Math.max(
-        0,
-        Math.min(
-          video.duration || Infinity,
-          video.currentTime +
-            seconds,
-        ),
-      );
+    const nextTime = Math.max(
+      0,
+      Math.min(
+        Number.isFinite(video.duration)
+          ? video.duration
+          : Infinity,
+        video.currentTime + seconds,
+      ),
+    );
+
+    video.currentTime = nextTime;
+
+    setCurrentTime(nextTime);
 
     showControlsTemporarily();
   };
@@ -416,8 +382,9 @@ export function MovieVideoPlayer({
   const handleProgressChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const value =
-      Number(event.target.value);
+    const value = Number(
+      event.target.value,
+    );
 
     if (videoRef.current) {
       videoRef.current.currentTime =
@@ -430,38 +397,33 @@ export function MovieVideoPlayer({
   const handleVolumeChange = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const value =
-      Number(event.target.value);
+    const value = Number(
+      event.target.value,
+    );
 
     setVolume(value);
 
     if (videoRef.current) {
-      videoRef.current.volume =
-        value;
-
+      videoRef.current.volume = value;
       videoRef.current.muted =
         value === 0;
     }
 
-    setMuted(
-      value === 0,
-    );
+    setMuted(value === 0);
   };
 
   const toggleMute = () => {
-    const video =
-      videoRef.current;
+    const video = videoRef.current;
 
     if (!video) {
       return;
     }
 
-    video.muted =
-      !video.muted;
+    const nextMuted = !video.muted;
 
-    setMuted(
-      video.muted,
-    );
+    video.muted = nextMuted;
+
+    setMuted(nextMuted);
   };
 
   const changePlaybackRate = (
@@ -475,100 +437,430 @@ export function MovieVideoPlayer({
     }
   };
 
-  const toggleFullscreen =
-    async () => {
-      const container =
-        containerRef.current;
+  const toggleFullscreen = async () => {
+    const container =
+      containerRef.current;
 
-      if (!container) {
-        return;
-      }
+    if (!container) {
+      return;
+    }
 
-      if (
-        document.fullscreenElement
-      ) {
+    try {
+      if (document.fullscreenElement) {
         await document.exitFullscreen();
       } else {
         await container.requestFullscreen();
       }
+    } catch (error) {
+      console.error(
+        "Fullscreen error:",
+        error,
+      );
+    }
 
-      showControlsTemporarily();
-    };
+    showControlsTemporarily();
+  };
 
   /* ---------------------------------------------------------------------- */
-  /* Subtitle handling                                                       */
+  /* Subtitle search                                                        */
+  /* ---------------------------------------------------------------------- */
+
+  const searchSubtitles = async (
+    language: string,
+  ) => {
+    try {
+      setSubtitleSearching(true);
+      setSubtitleError(null);
+      setSubtitleResults([]);
+
+      const response = await fetch(
+        `/api/subtitles/movies/${movieId}?language=${encodeURIComponent(
+          language,
+        )}`,
+        {
+          cache: "no-store",
+        },
+      );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.error ??
+            "Failed to search subtitles",
+        );
+      }
+
+      setSubtitleResults(
+        data.subtitles ?? [],
+      );
+    } catch (error) {
+      console.error(
+        "Subtitle search failed:",
+        error,
+      );
+
+      setSubtitleError(
+        error instanceof Error
+          ? error.message
+          : "Failed to search subtitles",
+      );
+    } finally {
+      setSubtitleSearching(false);
+    }
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Subtitle download                                                      */
+  /* ---------------------------------------------------------------------- */
+
+  const downloadSubtitle = async (
+    subtitle: SubtitleSearchResult,
+    language: string,
+    label: string,
+  ) => {
+    try {
+      setSubtitleDownloading(true);
+      setSubtitleError(null);
+
+      /*
+       * If this language is already loaded,
+       * activate it instead of downloading again.
+       */
+      const existing =
+        subtitleTracks.find(
+          (track) =>
+            track.language === language,
+        );
+
+      if (existing) {
+        setSelectedSubtitle(language);
+        setSubtitleResults([]);
+        return;
+      }
+
+      if (!subtitle.url) {
+        throw new Error(
+          "Subtitle URL is missing.",
+        );
+      }
+
+      const response = await fetch(
+        `/api/subtitles/movies/${movieId}/download`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            fileUrl: subtitle.url,
+            language,
+          }),
+        },
+      );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.error ??
+            "Failed to download subtitle",
+        );
+      }
+
+      const track: SubtitleTrack = {
+        language,
+        label:
+          data.subtitle?.label ??
+          label,
+        src:
+          data.subtitle?.src ??
+          `/api/subtitles/movies/${movieId}/${language}`,
+      };
+
+      setSubtitleTracks(
+        (current) => [
+          ...current.filter(
+            (item) =>
+              item.language !==
+              language,
+          ),
+          track,
+        ],
+      );
+
+      setSubtitleResults([]);
+
+      /*
+       * Select subtitle after React has
+       * rendered the <track>.
+       */
+      setSelectedSubtitle(language);
+    } catch (error) {
+      console.error(
+        "Subtitle download failed:",
+        error,
+      );
+
+      setSubtitleError(
+        error instanceof Error
+          ? error.message
+          : "Failed to download subtitle",
+      );
+    } finally {
+      setSubtitleDownloading(false);
+    }
+  };
+
+  /* ---------------------------------------------------------------------- */
+  /* Apply subtitle track                                                   */
+  /* ---------------------------------------------------------------------- */
+
+  useEffect(() => {
+    const activateSubtitle = () => {
+      const video = videoRef.current;
+
+      if (!video) {
+        return;
+      }
+
+      /*
+       * Disable every subtitle track.
+       */
+      for (
+        let index = 0;
+        index < video.textTracks.length;
+        index++
+      ) {
+        video.textTracks[index].mode =
+          "disabled";
+      }
+
+      if (
+        selectedSubtitle === "off"
+      ) {
+        return;
+      }
+
+      /*
+       * First try our direct HTMLTrackElement
+       * reference.
+       */
+      const trackElement =
+        subtitleTrackRefs.current[
+          selectedSubtitle
+        ];
+
+      if (trackElement) {
+        const textTrack =
+          trackElement.track;
+
+        if (textTrack) {
+          textTrack.mode =
+            "showing";
+
+          console.log(
+            "[Subtitles] Activated:",
+            {
+              language:
+                selectedSubtitle,
+              mode: textTrack.mode,
+              readyState:
+                trackElement.readyState,
+              cueCount:
+                textTrack.cues?.length ??
+                0,
+            },
+          );
+
+          return;
+        }
+      }
+
+      /*
+       * Fallback: search through video.textTracks.
+       */
+      const selectedLanguage =
+        selectedSubtitle
+          .toLowerCase()
+          .split("-")[0];
+
+      for (
+        let index = 0;
+        index < video.textTracks.length;
+        index++
+      ) {
+        const track =
+          video.textTracks[index];
+
+        const trackLanguage =
+          track.language
+            .toLowerCase()
+            .split("-")[0];
+
+        if (
+          trackLanguage ===
+          selectedLanguage
+        ) {
+          track.mode = "showing";
+
+          console.log(
+            "[Subtitles] Activated through textTracks:",
+            {
+              language:
+                track.language,
+              mode: track.mode,
+              cueCount:
+                track.cues?.length ?? 0,
+            },
+          );
+
+          return;
+        }
+      }
+
+      console.warn(
+        "[Subtitles] Selected track not found:",
+        selectedSubtitle,
+      );
+    };
+
+    /*
+     * React needs to render the track first.
+     */
+    const frame =
+      requestAnimationFrame(() => {
+        activateSubtitle();
+      });
+
+    /*
+     * A second attempt helps browsers that
+     * register dynamically-added tracks
+     * asynchronously.
+     */
+    const timer =
+      window.setTimeout(
+        activateSubtitle,
+        150,
+      );
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [
+    selectedSubtitle,
+    subtitleTracks,
+  ]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Subtitle selection                                                     */
   /* ---------------------------------------------------------------------- */
 
   const changeSubtitle = (
     language: string,
   ) => {
-    setSelectedSubtitle(
-      language,
-    );
+    setSelectedSubtitle(language);
 
-    const video =
-      videoRef.current;
+    setSubtitleResults([]);
 
-    if (!video) {
-      return;
-    }
+    setSubtitleError(null);
 
-    const tracks =
-      video.textTracks;
-
-    for (
-      let index = 0;
-      index < tracks.length;
-      index++
-    ) {
-      tracks[index].mode =
-        "disabled";
-    }
-
-    if (language === "off") {
-      return;
-    }
-
-    for (
-      let index = 0;
-      index < tracks.length;
-      index++
-    ) {
-      const track =
-        tracks[index];
+    if (language !== "off") {
+      const trackElement =
+        subtitleTrackRefs.current[
+          language
+        ];
 
       if (
-        track.language ===
-        language
+        trackElement?.track
       ) {
-        track.mode =
+        /*
+         * Disable everything first.
+         */
+        const video =
+          videoRef.current;
+
+        if (video) {
+          for (
+            let index = 0;
+            index <
+            video.textTracks.length;
+            index++
+          ) {
+            video.textTracks[
+              index
+            ].mode = "disabled";
+          }
+        }
+
+        /*
+         * Show selected track.
+         */
+        trackElement.track.mode =
           "showing";
-        break;
       }
     }
 
     showControlsTemporarily();
   };
 
+  /* ---------------------------------------------------------------------- */
+  /* Subtitle menu                                                          */
+  /* ---------------------------------------------------------------------- */
+
+  const toggleSubtitleMenu =
+    async (
+      event: React.MouseEvent,
+    ) => {
+      event.stopPropagation();
+
+      const next =
+        !subtitleMenuOpen;
+
+      setSubtitleMenuOpen(next);
+
+      if (
+        next &&
+        subtitleResults.length === 0 &&
+        subtitleTracks.length === 0 &&
+        !subtitleSearching
+      ) {
+        await searchSubtitles("en");
+      }
+
+      showControlsTemporarily();
+    };
+
+  /* ---------------------------------------------------------------------- */
+  /* Formatting                                                             */
+  /* ---------------------------------------------------------------------- */
+
   const formatTime = (
     seconds: number,
-  ) => {
+  ): string => {
     if (
       !Number.isFinite(seconds)
     ) {
       return "0:00";
     }
 
-    const total =
-      Math.max(
-        0,
-        Math.floor(seconds),
-      );
+    const total = Math.max(
+      0,
+      Math.floor(seconds),
+    );
 
     const hours =
-      Math.floor(
-        total / 3600,
-      );
+      Math.floor(total / 3600);
 
     const minutes =
       Math.floor(
@@ -617,7 +909,10 @@ export function MovieVideoPlayer({
         showControlsTemporarily
       }
     >
-      {/* Video */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Video                                                            */}
+      {/* ---------------------------------------------------------------- */}
+
       <video
         ref={videoRef}
         src={`/api/videos/movies/${movieId}`}
@@ -626,7 +921,6 @@ export function MovieVideoPlayer({
         }
         playsInline
         preload="metadata"
-        crossOrigin="anonymous"
         className="
           aspect-video
           w-full
@@ -641,27 +935,86 @@ export function MovieVideoPlayer({
           togglePlay();
         }}
       >
-        {/* Subtitle tracks */}
-        {subtitles.map(
+        {subtitleTracks.map(
           (subtitle) => (
             <track
               key={`${subtitle.language}-${subtitle.src}`}
+              ref={(element) => {
+                subtitleTrackRefs.current[
+                  subtitle.language
+                ] = element;
+              }}
               kind="subtitles"
               src={subtitle.src}
-              srcLang={
-                subtitle.language
-              }
+              srcLang={subtitle.language}
               label={subtitle.label}
               default={
-                subtitle.default ??
-                false
+                selectedSubtitle ===
+                subtitle.language
               }
+              onLoad={(event) => {
+                const element =
+                  event.currentTarget;
+
+                /*
+                 * If this is the selected
+                 * subtitle, show it immediately.
+                 */
+                if (
+                  selectedSubtitle ===
+                  subtitle.language
+                ) {
+                  /*
+                   * Disable all other tracks.
+                   */
+                  const video =
+                    videoRef.current;
+
+                  if (video) {
+                    for (
+                      let index = 0;
+                      index <
+                      video.textTracks
+                        .length;
+                      index++
+                    ) {
+                      video.textTracks[
+                        index
+                      ].mode =
+                        "disabled";
+                    }
+                  }
+
+                  element.track.mode =
+                    "showing";
+
+                  console.log(
+                    "[Subtitles] Track loaded:",
+                    {
+                      language:
+                        subtitle.language,
+                      mode:
+                        element.track
+                          .mode,
+                      readyState:
+                        element.readyState,
+                      cueCount:
+                        element.track
+                          .cues?.length ??
+                        0,
+                    },
+                  );
+                }
+              }}
             />
           ),
         )}
       </video>
 
-      {/* Center play */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Center play button                                                */}
+      {/* ---------------------------------------------------------------- */}
+
       {!playing && (
         <button
           type="button"
@@ -694,13 +1047,312 @@ export function MovieVideoPlayer({
         </button>
       )}
 
-      {/* Controls */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Subtitle menu                                                     */}
+      {/* ---------------------------------------------------------------- */}
+
+      {subtitleMenuOpen && (
+        <div
+          className="
+            absolute
+            bottom-20
+            right-4
+            z-40
+            w-[320px]
+            max-w-[calc(100vw-2rem)]
+            overflow-hidden
+            rounded-xl
+            border
+            border-white/10
+            bg-zinc-950/95
+            p-2
+            shadow-2xl
+            backdrop-blur-xl
+          "
+          onClick={(event) =>
+            event.stopPropagation()
+          }
+        >
+          {/* Header */}
+
+          <div className="flex items-center justify-between border-b border-white/5 px-2 pb-2">
+            <div className="flex items-center gap-2">
+              <Captions className="h-4 w-4 text-white/60" />
+
+              <span className="text-xs font-semibold text-white">
+                Subtitles
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setSubtitleMenuOpen(
+                  false,
+                )
+              }
+              className="
+                rounded-md
+                p-1
+                text-white/40
+                transition
+                hover:bg-white/10
+                hover:text-white
+              "
+              aria-label="Close subtitle menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Off */}
+
+          <button
+            type="button"
+            onClick={() =>
+              changeSubtitle("off")
+            }
+            className="
+              mt-1
+              flex
+              w-full
+              items-center
+              justify-between
+              rounded-lg
+              px-3
+              py-2.5
+              text-left
+              text-xs
+              text-white/70
+              transition
+              hover:bg-white/5
+              hover:text-white
+            "
+          >
+            <span>Off</span>
+
+            {selectedSubtitle ===
+              "off" && (
+              <Check className="h-4 w-4 text-red-500" />
+            )}
+          </button>
+
+          {/* Downloaded tracks */}
+
+          {subtitleTracks.map(
+            (subtitle) => (
+              <button
+                key={`${subtitle.language}-${subtitle.src}`}
+                type="button"
+                onClick={() =>
+                  changeSubtitle(
+                    subtitle.language,
+                  )
+                }
+                className="
+                  flex
+                  w-full
+                  items-center
+                  justify-between
+                  rounded-lg
+                  px-3
+                  py-2.5
+                  text-left
+                  text-xs
+                  text-white/70
+                  transition
+                  hover:bg-white/5
+                  hover:text-white
+                "
+              >
+                <span>
+                  {subtitle.label}
+                </span>
+
+                {selectedSubtitle ===
+                  subtitle.language && (
+                  <Check className="h-4 w-4 text-red-500" />
+                )}
+              </button>
+            ),
+          )}
+
+          {/* Search state */}
+
+          {subtitleSearching && (
+            <div className="flex items-center gap-2 px-3 py-4 text-xs text-white/40">
+              <div className="h-3 w-3 animate-spin rounded-full border border-white/20 border-t-white/80" />
+
+              Searching subtitles...
+            </div>
+          )}
+
+          {/* Search results */}
+
+          {!subtitleSearching &&
+            subtitleResults.length >
+              0 && (
+              <div className="mt-2 border-t border-white/5 pt-2">
+                <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/30">
+                  Available subtitles
+                </div>
+
+                <div className="max-h-56 overflow-y-auto">
+                  {subtitleResults.map(
+                    (subtitle) => (
+                      <button
+                        key={`${subtitle.fileId}-${subtitle.url}`}
+                        type="button"
+                        disabled={
+                          subtitleDownloading
+                        }
+                        onClick={() =>
+                          downloadSubtitle(
+                            subtitle,
+                            subtitle.language,
+                            subtitle.label,
+                          )
+                        }
+                        className="
+                          mt-1
+                          w-full
+                          rounded-lg
+                          px-3
+                          py-2.5
+                          text-left
+                          transition
+                          hover:bg-white/5
+                          disabled:cursor-not-allowed
+                          disabled:opacity-50
+                        "
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-medium text-white">
+                              {
+                                subtitle.label
+                              }
+                            </div>
+
+                            {subtitle.release && (
+                              <div className="mt-1 truncate text-[10px] text-white/35">
+                                {
+                                  subtitle.release
+                                }
+                              </div>
+                            )}
+
+                            {subtitle.fileName && (
+                              <div className="mt-1 truncate text-[10px] text-white/25">
+                                {
+                                  subtitle.fileName
+                                }
+                              </div>
+                            )}
+                          </div>
+
+                          <span className="shrink-0 text-[10px] text-white/30">
+                            {subtitleDownloading
+                              ? "..."
+                              : "Use"}
+                          </span>
+                        </div>
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+          {/* No results */}
+
+          {!subtitleSearching &&
+            subtitleResults.length ===
+              0 &&
+            subtitleTracks.length ===
+              0 &&
+            !subtitleError && (
+              <div className="px-3 py-4 text-xs text-white/30">
+                No subtitles found.
+              </div>
+            )}
+
+          {/* Search buttons */}
+
+          {!subtitleSearching && (
+            <div className="mt-2 border-t border-white/5 pt-2">
+              <button
+                type="button"
+                onClick={() =>
+                  searchSubtitles("en")
+                }
+                className="
+                  flex
+                  w-full
+                  items-center
+                  gap-2
+                  rounded-lg
+                  px-3
+                  py-2.5
+                  text-left
+                  text-xs
+                  text-white/50
+                  transition
+                  hover:bg-white/5
+                  hover:text-white
+                "
+              >
+                <Search className="h-3.5 w-3.5" />
+                Search English
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  searchSubtitles("si")
+                }
+                className="
+                  flex
+                  w-full
+                  items-center
+                  gap-2
+                  rounded-lg
+                  px-3
+                  py-2.5
+                  text-left
+                  text-xs
+                  text-white/50
+                  transition
+                  hover:bg-white/5
+                  hover:text-white
+                "
+              >
+                <Search className="h-3.5 w-3.5" />
+                Search Sinhala
+              </button>
+            </div>
+          )}
+
+          {/* Error */}
+
+          {subtitleError && (
+            <div className="mt-2 rounded-lg bg-red-500/10 px-3 py-2 text-[10px] leading-4 text-red-400">
+              {subtitleError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Controls                                                           */}
+      {/* ---------------------------------------------------------------- */}
+
       <div
         className={`
           absolute
           inset-x-0
           bottom-0
-          z-20
+          z-30
           bg-gradient-to-t
           from-black
           via-black/80
@@ -718,12 +1370,11 @@ export function MovieVideoPlayer({
         `}
       >
         {/* Progress */}
+
         <input
           type="range"
           min={0}
-          max={
-            duration || 0
-          }
+          max={duration || 0}
           step={0.1}
           value={Math.min(
             currentTime,
@@ -743,7 +1394,8 @@ export function MovieVideoPlayer({
         />
 
         <div className="flex items-center gap-3">
-          {/* Play/Pause */}
+          {/* Play / pause */}
+
           <button
             type="button"
             onClick={(event) => {
@@ -771,6 +1423,7 @@ export function MovieVideoPlayer({
           </button>
 
           {/* Back 10 */}
+
           <button
             type="button"
             onClick={(event) => {
@@ -791,6 +1444,7 @@ export function MovieVideoPlayer({
           </button>
 
           {/* Forward 10 */}
+
           <button
             type="button"
             onClick={(event) => {
@@ -811,6 +1465,7 @@ export function MovieVideoPlayer({
           </button>
 
           {/* Volume */}
+
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -865,6 +1520,7 @@ export function MovieVideoPlayer({
           </div>
 
           {/* Time */}
+
           <div className="text-xs text-white/60">
             {formatTime(
               currentTime,
@@ -876,111 +1532,52 @@ export function MovieVideoPlayer({
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {/* Subtitles */}
-            <div className="relative">
-              <label
-                htmlFor="subtitle-language"
-                className="sr-only"
-              >
-                Subtitles
-              </label>
+            {/* Subtitle button */}
 
-              <div
-                className="
-                  flex
-                  items-center
-                  gap-1
-                  rounded-lg
-                  bg-white/10
-                  px-2
-                  py-1.5
-                  transition
-                  hover:bg-white/15
-                "
-              >
-                <Captions className="h-4 w-4 text-white/70" />
+            <button
+              type="button"
+              onClick={
+                toggleSubtitleMenu
+              }
+              aria-label="Subtitles"
+              aria-expanded={
+                subtitleMenuOpen
+              }
+              className={`
+                flex
+                items-center
+                gap-1.5
+                rounded-lg
+                px-2.5
+                py-1.5
+                text-xs
+                transition
+                ${
+                  selectedSubtitle !==
+                  "off"
+                    ? "bg-red-600 text-white"
+                    : "bg-white/10 text-white/80 hover:bg-white/15 hover:text-white"
+                }
+              `}
+            >
+              <Captions className="h-4 w-4" />
 
-                <select
-                  id="subtitle-language"
-                  value={
-                    selectedSubtitle
-                  }
-                  onChange={(event) =>
-                    changeSubtitle(
-                      event.target
-                        .value,
-                    )
-                  }
-                  onClick={(event) =>
-                    event.stopPropagation()
-                  }
-                  disabled={
-                    subtitlesLoading
-                  }
-                  className="
-                    max-w-[110px]
-                    appearance-none
-                    bg-transparent
-                    text-xs
-                    text-white
-                    outline-none
-                    disabled:opacity-50
-                  "
-                  aria-label="Subtitles"
-                >
-                  <option
-                    value="off"
-                    className="bg-zinc-900"
-                  >
-                    {subtitlesLoading
-                      ? "Loading..."
-                      : "Off"}
-                  </option>
-
-                  {subtitles.map(
-                    (subtitle) => (
-                      <option
-                        key={`${subtitle.language}-${subtitle.src}`}
-                        value={
-                          subtitle.language
-                        }
-                        className="bg-zinc-900"
-                      >
-                        {subtitle.label}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-
-              {subtitleError && (
-                <div
-                  className="
-                    pointer-events-none
-                    absolute
-                    bottom-full
-                    right-0
-                    mb-2
-                    hidden
-                    w-52
-                    rounded-lg
-                    border
-                    border-white/10
-                    bg-zinc-950
-                    px-3
-                    py-2
-                    text-[10px]
-                    text-white/50
-                    shadow-xl
-                    sm:block
-                  "
-                >
-                  {subtitleError}
-                </div>
-              )}
-            </div>
+              <span className="hidden sm:inline">
+                {selectedSubtitle ===
+                "off"
+                  ? "CC"
+                  : selectedSubtitle ===
+                      "en"
+                    ? "EN"
+                    : selectedSubtitle ===
+                        "si"
+                      ? "SI"
+                      : selectedSubtitle}
+              </span>
+            </button>
 
             {/* Playback speed */}
+
             <div className="relative">
               <select
                 value={
@@ -1070,6 +1667,7 @@ export function MovieVideoPlayer({
             </div>
 
             {/* Fullscreen */}
+
             <button
               type="button"
               onClick={(event) => {
@@ -1092,6 +1690,7 @@ export function MovieVideoPlayer({
         </div>
 
         {/* Title */}
+
         <div className="mt-2 truncate text-xs text-white/50">
           {title}
         </div>
