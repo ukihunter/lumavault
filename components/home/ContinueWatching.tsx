@@ -3,885 +3,397 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  Play,
-  X,
-} from "lucide-react";
-
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-
-type ContinueItem = {
+type MovieProgress = {
   id: string;
-  kind: "movie" | "episode";
   title: string;
-  subtitle: string;
-  image: string | null;
-  progress: number;
-  duration: string;
-  remaining: string;
+  duration: number | null;
+  poster: string | null;
+  backdrop: string | null;
+};
+
+type EpisodeProgress = {
+  id: string;
+  number: number;
+  title: string;
+  duration: number | null;
+  thumbnail: string | null;
+  season: {
+    number: number;
+    series: {
+      id: string;
+      title: string;
+      poster: string | null;
+      backdrop: string | null;
+    };
+  };
+};
+
+type ProgressItem = {
+  id: string;
+  position: number;
+  completed: boolean;
+  updatedAt: string;
+  movie: MovieProgress | null;
+  episode: EpisodeProgress | null;
 };
 
 type ProgressResponse = {
   success: boolean;
-
-  progress?: Array<{
-    id: string;
-    position: number;
-    completed: boolean;
-    updatedAt: string;
-
-    movie: {
-      id: string;
-      title: string;
-      duration: number | null;
-      poster: string | null;
-      backdrop: string | null;
-    } | null;
-
-    episode: {
-      id: string;
-      number: number;
-      title: string;
-      duration: number | null;
-      thumbnail: string | null;
-
-      season: {
-        number: number;
-
-        series: {
-          id: string;
-          title: string;
-          poster: string | null;
-          backdrop: string | null;
-        };
-      };
-    } | null;
-  }>;
-
-  count?: number;
-  error?: string;
+  progress: ProgressItem[];
+  count: number;
 };
 
-function formatDuration(
-  seconds: number | null,
-): string {
-  if (
-    !seconds ||
-    seconds <= 0
-  ) {
-    return "--";
+type ContinueItem =
+  | {
+      kind: "movie";
+      progressId: string;
+      id: string;
+      title: string;
+      subtitle: string;
+      image: string | null;
+      position: number;
+      duration: number | null;
+      updatedAt: string;
+    }
+  | {
+      kind: "episode";
+      progressId: string;
+      id: string;
+      title: string;
+      subtitle: string;
+      image: string | null;
+      position: number;
+      duration: number | null;
+      updatedAt: string;
+    };
+
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return "0:00";
   }
 
-  const totalMinutes = Math.max(
-    1,
-    Math.round(seconds / 60),
-  );
+  const totalSeconds = Math.floor(seconds);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
 
-  if (
-    totalMinutes < 60
-  ) {
-    return `${totalMinutes} min`;
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(
+      secs
+    ).padStart(2, "0")}`;
   }
 
-  const hours = Math.floor(
-    totalMinutes / 60,
-  );
-
-  const minutes =
-    totalMinutes % 60;
-
-  if (minutes === 0) {
-    return `${hours}h`;
-  }
-
-  return `${hours}h ${minutes}m`;
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
-function formatRemaining(
-  seconds: number | null,
-  position: number,
-): string {
-  if (
-    !seconds ||
-    seconds <= 0
-  ) {
-    return "";
-  }
-
-  const remainingSeconds =
-    Math.max(
-      0,
-      seconds - position,
-    );
-
-  const totalMinutes = Math.ceil(
-    remainingSeconds / 60,
-  );
-
-  if (
-    totalMinutes < 60
-  ) {
-    return `${totalMinutes} min left`;
-  }
-
-  const hours = Math.floor(
-    totalMinutes / 60,
-  );
-
-  const minutes =
-    totalMinutes % 60;
-
-  if (minutes === 0) {
-    return `${hours}h left`;
-  }
-
-  return `${hours}h ${minutes}m left`;
-}
-
-function getProgress(
-  position: number,
-  duration: number | null,
-): number {
-  if (
-    !duration ||
-    duration <= 0
-  ) {
+function getProgressPercent(position: number, duration: number | null) {
+  if (!duration || duration <= 0) {
     return 0;
   }
 
-  return Math.min(
-    100,
-    Math.max(
-      0,
-      (position / duration) * 100,
-    ),
-  );
-}
+  const percent = (position / duration) * 100;
 
-function getImage(
-  thumbnail: string | null,
-  backdrop: string | null,
-  poster: string | null,
-): string | null {
-  if (thumbnail) {
-    return thumbnail;
-  }
-
-  if (backdrop) {
-    return backdrop;
-  }
-
-  if (poster) {
-    return poster;
-  }
-
-  return null;
+  return Math.min(100, Math.max(0, percent));
 }
 
 export function ContinueWatching() {
-  const [items, setItems] =
-    useState<ContinueItem[]>([]);
+  const [items, setItems] = useState<ContinueItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [loading, setLoading] =
-    useState(true);
+  const loadProgress = useCallback(async () => {
+    try {
+      const response = await fetch("/api/progress", {
+        method: "GET",
+        cache: "no-store",
+      });
 
-  const [error, setError] =
-    useState<string | null>(null);
-
-  const loadContinueWatching =
-    useCallback(async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response =
-          await fetch(
-            "/api/progress",
-            {
-              cache: "no-store",
-            },
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to load continue watching",
-          );
-        }
-
-        const data: ProgressResponse =
-          await response.json();
-
-        if (
-          !data.success ||
-          !data.progress
-        ) {
-          setItems([]);
-          return;
-        }
-
-        const mappedItems =
-          data.progress
-            .filter(
-              (item) =>
-                !item.completed &&
-                item.position > 0,
-            )
-            .map(
-              (
-                item,
-              ): ContinueItem | null => {
-                /* -------------------------------------------------------- */
-                /* Movie                                                      */
-                /* -------------------------------------------------------- */
-
-                if (item.movie) {
-                  const movie =
-                    item.movie;
-
-                  return {
-                    id: movie.id,
-                    kind: "movie",
-
-                    title:
-                      movie.title,
-
-                    subtitle: "Movie",
-
-                    image:
-                      movie.backdrop ??
-                      movie.poster ??
-                      null,
-
-                    progress:
-                      getProgress(
-                        item.position,
-                        movie.duration,
-                      ),
-
-                    duration:
-                      formatDuration(
-                        movie.duration,
-                      ),
-
-                    remaining:
-                      movie.duration
-                        ? formatRemaining(
-                            movie.duration,
-                            item.position,
-                          )
-                        : `${item.position}s watched`,
-                  };
-                }
-
-                /* -------------------------------------------------------- */
-                /* Episode                                                    */
-                /* -------------------------------------------------------- */
-
-                if (item.episode) {
-                  const episode =
-                    item.episode;
-
-                  const series =
-                    episode.season
-                      .series;
-
-                  return {
-                    id: episode.id,
-                    kind: "episode",
-
-                    title:
-                      series.title,
-
-                    subtitle:
-                      `S${String(
-                        episode.season
-                          .number,
-                      ).padStart(
-                        2,
-                        "0",
-                      )} E${String(
-                        episode.number,
-                      ).padStart(
-                        2,
-                        "0",
-                      )} • ${
-                        episode.title
-                      }`,
-
-                    image:
-                      getImage(
-                        episode.thumbnail,
-                        series.backdrop,
-                        series.poster,
-                      ),
-
-                    progress:
-                      getProgress(
-                        item.position,
-                        episode.duration,
-                      ),
-
-                    duration:
-                      formatDuration(
-                        episode.duration,
-                      ),
-
-                    remaining:
-                      episode.duration
-                        ? formatRemaining(
-                            episode.duration,
-                            item.position,
-                          )
-                        : `${item.position}s watched`,
-                  };
-                }
-
-                return null;
-              },
-            )
-            .filter(
-              (
-                item,
-              ): item is ContinueItem =>
-                item !== null,
-            );
-
-        setItems(mappedItems);
-      } catch (error) {
-        console.error(
-          "Failed to load continue watching:",
-          error,
-        );
-
-        setError(
-          "Failed to load continue watching",
-        );
-
-        setItems([]);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(`Failed to load progress: ${response.status}`);
       }
-    }, []);
+
+      const data: ProgressResponse = await response.json();
+
+      if (!data.success || !Array.isArray(data.progress)) {
+        setItems([]);
+        return;
+      }
+
+      const mapped: ContinueItem[] = [];
+
+      for (const progress of data.progress) {
+        /**
+         * MOVIE
+         */
+        if (progress.movie) {
+          mapped.push({
+            kind: "movie",
+            progressId: progress.id,
+            id: progress.movie.id,
+            title: progress.movie.title,
+            subtitle: "Movie",
+            image:
+              progress.movie.backdrop ||
+              progress.movie.poster ||
+              null,
+            position: progress.position,
+            duration: progress.movie.duration,
+            updatedAt: progress.updatedAt,
+          });
+
+          continue;
+        }
+
+        /**
+         * EPISODE
+         */
+        if (progress.episode) {
+          mapped.push({
+            kind: "episode",
+            progressId: progress.id,
+            id: progress.episode.id,
+            title: progress.episode.title,
+            subtitle: `${progress.episode.season.series.title} • S${String(
+              progress.episode.season.number
+            ).padStart(2, "0")} E${String(progress.episode.number).padStart(
+              2,
+              "0"
+            )}`,
+            image:
+              progress.episode.thumbnail ||
+              progress.episode.season.series.backdrop ||
+              progress.episode.season.series.poster ||
+              null,
+            position: progress.position,
+            duration: progress.episode.duration,
+            updatedAt: progress.updatedAt,
+          });
+        }
+      }
+
+      /**
+       * API is already ordered by updatedAt desc,
+       * but sort again here to guarantee the UI order.
+       */
+      mapped.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() -
+          new Date(a.updatedAt).getTime()
+      );
+
+      console.log("Continue Watching mapped items:", mapped);
+
+      setItems(mapped);
+    } catch (error) {
+      console.error("Failed to load continue watching:", error);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    void loadContinueWatching();
+    loadProgress();
 
-    /*
-     * Refresh when the user returns to
-     * the tab/window.
-     */
-    const handleVisibilityChange =
-      () => {
-        if (
-          document.visibilityState ===
-          "visible"
-        ) {
-          void loadContinueWatching();
-        }
-      };
-
-    const handleFocus = () => {
-      void loadContinueWatching();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadProgress();
+      }
     };
 
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange,
-    );
+    const handleFocus = () => {
+      loadProgress();
+    };
 
-    window.addEventListener(
-      "focus",
-      handleFocus,
-    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       document.removeEventListener(
         "visibilitychange",
-        handleVisibilityChange,
+        handleVisibilityChange
       );
-
-      window.removeEventListener(
-        "focus",
-        handleFocus,
-      );
+      window.removeEventListener("focus", handleFocus);
     };
-  }, [
-    loadContinueWatching,
-  ]);
+  }, [loadProgress]);
 
-  async function removeItem(
-    item: ContinueItem,
-  ) {
-    const previousItems =
-      items;
-
-    /*
-     * Immediately remove the card.
-     */
-    setItems(
-      (current) =>
-        current.filter(
-          (existing) =>
-            !(
-              existing.id ===
-                item.id &&
-              existing.kind ===
-                item.kind
-            ),
-        ),
-    );
-
+  const removeProgress = async (item: ContinueItem) => {
     try {
       const query =
         item.kind === "movie"
-          ? `movieId=${encodeURIComponent(
-              item.id,
-            )}`
-          : `episodeId=${encodeURIComponent(
-              item.id,
-            )}`;
+          ? `movieId=${encodeURIComponent(item.id)}`
+          : `episodeId=${encodeURIComponent(item.id)}`;
 
-      const response =
-        await fetch(
-          `/api/progress?${query}`,
-          {
-            method: "DELETE",
-          },
-        );
+      const response = await fetch(`/api/progress?${query}`, {
+        method: "DELETE",
+      });
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to remove progress",
-        );
+        throw new Error("Failed to remove progress");
       }
 
-      const data =
-        await response.json();
-
-      if (!data.success) {
-        throw new Error(
-          data.error ??
-            "Failed to remove progress",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Failed to remove progress:",
-        error,
+      setItems((current) =>
+        current.filter((entry) => entry.progressId !== item.progressId)
       );
-
-      /*
-       * Restore the card if deletion
-       * failed.
-       */
-      setItems(previousItems);
+    } catch (error) {
+      console.error("Failed to remove progress:", error);
     }
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* Loading state                                                          */
-  /* ---------------------------------------------------------------------- */
+  };
 
   if (loading) {
     return (
-      <section className="relative">
-        <div className="mb-5">
-          <div className="mb-2 h-3 w-40 animate-pulse rounded bg-white/10" />
+      <section className="space-y-4">
+        <div className="h-7 w-48 animate-pulse rounded bg-zinc-800" />
 
-          <div className="h-7 w-56 animate-pulse rounded bg-white/10" />
-        </div>
-
-        <div
-          className="
-            -mx-4
-            flex
-            gap-4
-            overflow-hidden
-            px-4
-            sm:-mx-6
-            sm:px-6
-            lg:-mx-10
-            lg:px-10
-          "
-        >
-          {Array.from({
-            length: 4,
-          }).map(
-            (_, index) => (
-              <div
-                key={index}
-                className="
-                  w-[270px]
-                  shrink-0
-                  overflow-hidden
-                  rounded-xl
-                  bg-zinc-900
-                  sm:w-[310px]
-                  lg:w-[340px]
-                "
-              >
-                <div className="aspect-video animate-pulse bg-zinc-800" />
-
-                <div className="h-1 bg-white/5" />
-
-                <div className="space-y-3 p-4">
-                  <div className="h-4 w-32 animate-pulse rounded bg-white/10" />
-
-                  <div className="h-3 w-48 animate-pulse rounded bg-white/10" />
-                </div>
-              </div>
-            ),
-          )}
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3, 4].map((item) => (
+            <div
+              key={item}
+              className="h-44 w-72 shrink-0 animate-pulse rounded-xl bg-zinc-900"
+            />
+          ))}
         </div>
       </section>
     );
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* Error state                                                            */
-  /* ---------------------------------------------------------------------- */
-
-  if (error) {
-    return null;
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* Nothing to continue                                                    */
-  /* ---------------------------------------------------------------------- */
-
   if (items.length === 0) {
     return null;
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* Render                                                                 */
-  /* ---------------------------------------------------------------------- */
-
   return (
-    <section className="relative">
-      <div className="mb-5 flex items-end justify-between">
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
         <div>
-          <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-red-500">
-            Pick up where you left off
-          </p>
-
-          <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+          <h2 className="text-xl font-semibold text-white">
             Continue Watching
           </h2>
-        </div>
 
-        <Link
-          href="/library?filter=continue"
-          className="
-            hidden
-            text-sm
-            font-medium
-            text-white/40
-            transition
-            hover:text-white
-            sm:block
-          "
-        >
-          View all
-        </Link>
+          <p className="mt-1 text-sm text-zinc-400">
+            Pick up where you left off
+          </p>
+        </div>
       </div>
 
-      <div
-        className="
-          -mx-4
-          flex
-          gap-4
-          overflow-x-auto
-          px-4
-          pb-4
-          scrollbar-none
-          sm:-mx-6
-          sm:px-6
-          lg:-mx-10
-          lg:px-10
-        "
-      >
-        {items.map(
-          (item) => (
-            <ContinueCard
-              key={`${item.kind}-${item.id}`}
-              item={item}
-              onRemove={removeItem}
-            />
-          ),
-        )}
+      <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+        {items.map((item) => {
+          const href =
+            item.kind === "movie"
+              ? `/movies/${item.id}`
+              : `/watch/${item.id}`;
+
+          const progressPercent = getProgressPercent(
+            item.position,
+            item.duration
+          );
+
+          return (
+            <div
+              key={item.progressId}
+              className="group relative w-72 shrink-0 overflow-hidden rounded-xl bg-zinc-900"
+            >
+              <Link href={href} className="block">
+                <div className="relative aspect-video overflow-hidden bg-zinc-800">
+                  {item.image ? (
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="288px"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-sm text-zinc-500">
+                      No image
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
+
+                  {/* Content type */}
+                  <div className="absolute left-3 top-3 rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold tracking-wide text-white backdrop-blur">
+                    {item.kind === "movie" ? "MOVIE" : "EPISODE"}
+                  </div>
+
+                  {/* Play overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-lg">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="ml-1"
+                      >
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                 {/* Progress bar */}
+<div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+  <div
+    className="h-full bg-red-600 transition-all duration-300"
+    style={{
+      width:
+        item.position > 0
+          ? item.duration && item.duration > 0
+            ? `${Math.min(
+                100,
+                Math.max(2, (item.position / item.duration) * 100)
+              )}%`
+            : "8%"
+          : "0%",
+    }}
+  />
+</div>
+                </div>
+
+                <div className="space-y-1 p-3">
+                  <h3 className="truncate text-sm font-semibold text-white">
+                    {item.title}
+                  </h3>
+
+                  <p className="truncate text-xs text-zinc-400">
+                    {item.subtitle}
+                  </p>
+
+                  <p className="text-xs text-zinc-500">
+                    {formatTime(item.position)}
+                    {item.duration
+                      ? ` / ${formatTime(item.duration)}`
+                      : " watched"}
+                  </p>
+                </div>
+              </Link>
+
+              {/* Remove */}
+              <button
+                type="button"
+                onClick={() => removeProgress(item)}
+                className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-zinc-300 opacity-0 backdrop-blur transition-all hover:bg-black hover:text-white group-hover:opacity-100"
+                title="Remove from Continue Watching"
+                aria-label="Remove from Continue Watching"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+          );
+        })}
       </div>
     </section>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Continue Card                                                              */
-/* -------------------------------------------------------------------------- */
-
-function ContinueCard({
-  item,
-  onRemove,
-}: {
-  item: ContinueItem;
-  onRemove: (
-    item: ContinueItem,
-  ) => void;
-}) {
-  const href =
-    item.kind === "movie"
-      ? `/movies/${item.id}`
-      : `/watch/${item.id}`;
-
-  return (
-    <article
-      className="
-        group
-        relative
-        w-[270px]
-        shrink-0
-        overflow-hidden
-        rounded-xl
-        bg-zinc-900
-        transition-all
-        duration-300
-        hover:-translate-y-1
-        hover:bg-zinc-800
-        hover:shadow-2xl
-        hover:shadow-black/50
-        sm:w-[310px]
-        lg:w-[340px]
-      "
-    >
-      {/* ---------------------------------------------------------------- */}
-      {/* Thumbnail                                                         */}
-      {/* ---------------------------------------------------------------- */}
-
-      <Link
-        href={href}
-        className="
-          relative
-          block
-          aspect-video
-          overflow-hidden
-        "
-      >
-        {item.image ? (
-          <Image
-            src={item.image}
-            alt={`${item.title} - ${item.subtitle}`}
-            fill
-            priority={false}
-            sizes="
-              (max-width: 640px) 270px,
-              (max-width: 1024px) 310px,
-              340px
-            "
-            className="
-              object-cover
-              transition
-              duration-500
-              group-hover:scale-105
-            "
-          />
-        ) : (
-          <div
-            className="
-              absolute
-              inset-0
-              flex
-              items-center
-              justify-center
-              bg-gradient-to-br
-              from-zinc-800
-              via-zinc-900
-              to-black
-              px-6
-            "
-          >
-            <div className="text-center">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/20">
-                Continue Watching
-              </p>
-
-              <p className="mt-2 line-clamp-2 text-sm font-semibold text-white/40">
-                {item.title}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Dark overlay */}
-
-        <div
-          className="
-            absolute
-            inset-0
-            bg-gradient-to-t
-            from-black/80
-            via-transparent
-            to-black/10
-          "
-        />
-
-        {/* Play button */}
-
-        <div
-          className="
-            absolute
-            inset-0
-            flex
-            items-center
-            justify-center
-            opacity-0
-            transition
-            duration-300
-            group-hover:opacity-100
-          "
-        >
-          <div
-            className="
-              flex
-              h-12
-              w-12
-              items-center
-              justify-center
-              rounded-full
-              bg-white
-              text-black
-              shadow-xl
-              transition
-              hover:scale-110
-            "
-          >
-            <Play className="ml-0.5 h-5 w-5 fill-current" />
-          </div>
-        </div>
-
-        {/* Remaining */}
-
-        {item.remaining && (
-          <span
-            className="
-              absolute
-              bottom-3
-              left-3
-              rounded-md
-              bg-black/70
-              px-2
-              py-1
-              text-[10px]
-              font-medium
-              text-white/80
-              backdrop-blur-sm
-            "
-          >
-            {item.remaining}
-          </span>
-        )}
-
-        {/* Content type */}
-
-        <span
-          className="
-            absolute
-            right-3
-            bottom-3
-            rounded-md
-            bg-black/70
-            px-2
-            py-1
-            text-[10px]
-            font-medium
-            uppercase
-            tracking-wide
-            text-white/60
-            backdrop-blur-sm
-          "
-        >
-          {item.kind}
-        </span>
-
-        {/* Remove */}
-
-        <button
-          type="button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            onRemove(item);
-          }}
-          className="
-            absolute
-            right-3
-            top-3
-            flex
-            h-8
-            w-8
-            items-center
-            justify-center
-            rounded-full
-            bg-black/60
-            text-white/60
-            opacity-0
-            backdrop-blur-sm
-            transition
-            hover:bg-black/80
-            hover:text-white
-            group-hover:opacity-100
-          "
-          aria-label={`Remove ${item.title} from continue watching`}
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </Link>
-
-      {/* ---------------------------------------------------------------- */}
-      {/* Progress                                                          */}
-      {/* ---------------------------------------------------------------- */}
-
-      <div className="h-1 w-full bg-white/10">
-        {item.progress > 0 && (
-          <div
-            className="
-              h-full
-              bg-red-600
-              transition-all
-              duration-500
-            "
-            style={{
-              width: `${item.progress}%`,
-            }}
-          />
-        )}
-      </div>
-
-      {/* ---------------------------------------------------------------- */}
-      {/* Information                                                       */}
-      {/* ---------------------------------------------------------------- */}
-
-      <div className="p-4">
-        <h3 className="truncate text-sm font-semibold text-white">
-          {item.title}
-        </h3>
-
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="truncate text-xs text-white/40">
-            {item.subtitle}
-          </p>
-
-          <span className="shrink-0 text-[10px] text-white/30">
-            {item.duration}
-          </span>
-        </div>
-      </div>
-    </article>
   );
 }
 
