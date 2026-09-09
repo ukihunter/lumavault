@@ -18,9 +18,36 @@ export async function GET(
       where: {
         id: movieId,
       },
-      include: {
-        mediaSource: true,
-        library: true,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        year: true,
+        poster: true,
+        backdrop: true,
+        duration: true,
+
+        library: {
+          select: {
+            id: true,
+            name: true,
+            path: true,
+            type: true,
+          },
+        },
+
+        mediaSource: {
+          select: {
+            id: true,
+            type: true,
+            filePath: true,
+            archivePath: true,
+            entryPath: true,
+          },
+        },
+
+        createdAt: true,
+        updatedAt: true,
       },
     });
 

@@ -29,11 +29,15 @@ export type AggregateMovie = {
 export type MovieAvgAggregateOutputType = {
   year: number | null
   duration: number | null
+  tmdbId: number | null
+  voteAverage: number | null
 }
 
 export type MovieSumAggregateOutputType = {
   year: number | null
   duration: number | null
+  tmdbId: number | null
+  voteAverage: number | null
 }
 
 export type MovieMinAggregateOutputType = {
@@ -41,9 +45,12 @@ export type MovieMinAggregateOutputType = {
   title: string | null
   description: string | null
   year: number | null
+  duration: number | null
+  tmdbId: number | null
+  overview: string | null
   poster: string | null
   backdrop: string | null
-  duration: number | null
+  voteAverage: number | null
   libraryId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -54,9 +61,12 @@ export type MovieMaxAggregateOutputType = {
   title: string | null
   description: string | null
   year: number | null
+  duration: number | null
+  tmdbId: number | null
+  overview: string | null
   poster: string | null
   backdrop: string | null
-  duration: number | null
+  voteAverage: number | null
   libraryId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -67,9 +77,12 @@ export type MovieCountAggregateOutputType = {
   title: number
   description: number
   year: number
+  duration: number
+  tmdbId: number
+  overview: number
   poster: number
   backdrop: number
-  duration: number
+  voteAverage: number
   libraryId: number
   createdAt: number
   updatedAt: number
@@ -80,11 +93,15 @@ export type MovieCountAggregateOutputType = {
 export type MovieAvgAggregateInputType = {
   year?: true
   duration?: true
+  tmdbId?: true
+  voteAverage?: true
 }
 
 export type MovieSumAggregateInputType = {
   year?: true
   duration?: true
+  tmdbId?: true
+  voteAverage?: true
 }
 
 export type MovieMinAggregateInputType = {
@@ -92,9 +109,12 @@ export type MovieMinAggregateInputType = {
   title?: true
   description?: true
   year?: true
+  duration?: true
+  tmdbId?: true
+  overview?: true
   poster?: true
   backdrop?: true
-  duration?: true
+  voteAverage?: true
   libraryId?: true
   createdAt?: true
   updatedAt?: true
@@ -105,9 +125,12 @@ export type MovieMaxAggregateInputType = {
   title?: true
   description?: true
   year?: true
+  duration?: true
+  tmdbId?: true
+  overview?: true
   poster?: true
   backdrop?: true
-  duration?: true
+  voteAverage?: true
   libraryId?: true
   createdAt?: true
   updatedAt?: true
@@ -118,9 +141,12 @@ export type MovieCountAggregateInputType = {
   title?: true
   description?: true
   year?: true
+  duration?: true
+  tmdbId?: true
+  overview?: true
   poster?: true
   backdrop?: true
-  duration?: true
+  voteAverage?: true
   libraryId?: true
   createdAt?: true
   updatedAt?: true
@@ -218,9 +244,12 @@ export type MovieGroupByOutputType = {
   title: string
   description: string | null
   year: number | null
+  duration: number | null
+  tmdbId: number | null
+  overview: string | null
   poster: string | null
   backdrop: string | null
-  duration: number | null
+  voteAverage: number | null
   libraryId: string
   createdAt: Date
   updatedAt: Date
@@ -254,9 +283,12 @@ export type MovieWhereInput = {
   title?: Prisma.StringFilter<"Movie"> | string
   description?: Prisma.StringNullableFilter<"Movie"> | string | null
   year?: Prisma.IntNullableFilter<"Movie"> | number | null
+  duration?: Prisma.IntNullableFilter<"Movie"> | number | null
+  tmdbId?: Prisma.IntNullableFilter<"Movie"> | number | null
+  overview?: Prisma.StringNullableFilter<"Movie"> | string | null
   poster?: Prisma.StringNullableFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Movie"> | string | null
-  duration?: Prisma.IntNullableFilter<"Movie"> | number | null
+  voteAverage?: Prisma.FloatNullableFilter<"Movie"> | number | null
   libraryId?: Prisma.StringFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
@@ -269,9 +301,12 @@ export type MovieOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   year?: Prisma.SortOrderInput | Prisma.SortOrder
+  duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  tmdbId?: Prisma.SortOrderInput | Prisma.SortOrder
+  overview?: Prisma.SortOrderInput | Prisma.SortOrder
   poster?: Prisma.SortOrderInput | Prisma.SortOrder
   backdrop?: Prisma.SortOrderInput | Prisma.SortOrder
-  duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  voteAverage?: Prisma.SortOrderInput | Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -287,9 +322,12 @@ export type MovieWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringFilter<"Movie"> | string
   description?: Prisma.StringNullableFilter<"Movie"> | string | null
   year?: Prisma.IntNullableFilter<"Movie"> | number | null
+  duration?: Prisma.IntNullableFilter<"Movie"> | number | null
+  tmdbId?: Prisma.IntNullableFilter<"Movie"> | number | null
+  overview?: Prisma.StringNullableFilter<"Movie"> | string | null
   poster?: Prisma.StringNullableFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Movie"> | string | null
-  duration?: Prisma.IntNullableFilter<"Movie"> | number | null
+  voteAverage?: Prisma.FloatNullableFilter<"Movie"> | number | null
   libraryId?: Prisma.StringFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
@@ -302,9 +340,12 @@ export type MovieOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   year?: Prisma.SortOrderInput | Prisma.SortOrder
+  duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  tmdbId?: Prisma.SortOrderInput | Prisma.SortOrder
+  overview?: Prisma.SortOrderInput | Prisma.SortOrder
   poster?: Prisma.SortOrderInput | Prisma.SortOrder
   backdrop?: Prisma.SortOrderInput | Prisma.SortOrder
-  duration?: Prisma.SortOrderInput | Prisma.SortOrder
+  voteAverage?: Prisma.SortOrderInput | Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -323,9 +364,12 @@ export type MovieScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
   year?: Prisma.IntNullableWithAggregatesFilter<"Movie"> | number | null
+  duration?: Prisma.IntNullableWithAggregatesFilter<"Movie"> | number | null
+  tmdbId?: Prisma.IntNullableWithAggregatesFilter<"Movie"> | number | null
+  overview?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
   poster?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
-  duration?: Prisma.IntNullableWithAggregatesFilter<"Movie"> | number | null
+  voteAverage?: Prisma.FloatNullableWithAggregatesFilter<"Movie"> | number | null
   libraryId?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Movie"> | Date | string
@@ -336,9 +380,12 @@ export type MovieCreateInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
@@ -350,9 +397,12 @@ export type MovieUncheckedCreateInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -364,9 +414,12 @@ export type MovieUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
@@ -378,9 +431,12 @@ export type MovieUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -392,9 +448,12 @@ export type MovieCreateManyInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -405,9 +464,12 @@ export type MovieUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -417,9 +479,12 @@ export type MovieUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -440,9 +505,12 @@ export type MovieCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   year?: Prisma.SortOrder
+  duration?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  overview?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
-  duration?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -451,6 +519,8 @@ export type MovieCountOrderByAggregateInput = {
 export type MovieAvgOrderByAggregateInput = {
   year?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
 }
 
 export type MovieMaxOrderByAggregateInput = {
@@ -458,9 +528,12 @@ export type MovieMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   year?: Prisma.SortOrder
+  duration?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  overview?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
-  duration?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -471,9 +544,12 @@ export type MovieMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   year?: Prisma.SortOrder
+  duration?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  overview?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
-  duration?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -482,6 +558,8 @@ export type MovieMinOrderByAggregateInput = {
 export type MovieSumOrderByAggregateInput = {
   year?: Prisma.SortOrder
   duration?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
 }
 
 export type MovieNullableScalarRelationFilter = {
@@ -543,6 +621,14 @@ export type NullableIntFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type MovieCreateNestedOneWithoutMediaSourceInput = {
   create?: Prisma.XOR<Prisma.MovieCreateWithoutMediaSourceInput, Prisma.MovieUncheckedCreateWithoutMediaSourceInput>
   connectOrCreate?: Prisma.MovieCreateOrConnectWithoutMediaSourceInput
@@ -564,9 +650,12 @@ export type MovieCreateWithoutLibraryInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mediaSource?: Prisma.MediaSourceCreateNestedOneWithoutMovieInput
@@ -577,9 +666,12 @@ export type MovieUncheckedCreateWithoutLibraryInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mediaSource?: Prisma.MediaSourceUncheckedCreateNestedOneWithoutMovieInput
@@ -618,9 +710,12 @@ export type MovieScalarWhereInput = {
   title?: Prisma.StringFilter<"Movie"> | string
   description?: Prisma.StringNullableFilter<"Movie"> | string | null
   year?: Prisma.IntNullableFilter<"Movie"> | number | null
+  duration?: Prisma.IntNullableFilter<"Movie"> | number | null
+  tmdbId?: Prisma.IntNullableFilter<"Movie"> | number | null
+  overview?: Prisma.StringNullableFilter<"Movie"> | string | null
   poster?: Prisma.StringNullableFilter<"Movie"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Movie"> | string | null
-  duration?: Prisma.IntNullableFilter<"Movie"> | number | null
+  voteAverage?: Prisma.FloatNullableFilter<"Movie"> | number | null
   libraryId?: Prisma.StringFilter<"Movie"> | string
   createdAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Movie"> | Date | string
@@ -631,9 +726,12 @@ export type MovieCreateWithoutMediaSourceInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutMoviesInput
@@ -644,9 +742,12 @@ export type MovieUncheckedCreateWithoutMediaSourceInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -673,9 +774,12 @@ export type MovieUpdateWithoutMediaSourceInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutMoviesNestedInput
@@ -686,9 +790,12 @@ export type MovieUncheckedUpdateWithoutMediaSourceInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -699,9 +806,12 @@ export type MovieCreateManyLibraryInput = {
   title: string
   description?: string | null
   year?: number | null
+  duration?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
-  duration?: number | null
+  voteAverage?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -711,9 +821,12 @@ export type MovieUpdateWithoutLibraryInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mediaSource?: Prisma.MediaSourceUpdateOneWithoutMovieNestedInput
@@ -724,9 +837,12 @@ export type MovieUncheckedUpdateWithoutLibraryInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mediaSource?: Prisma.MediaSourceUncheckedUpdateOneWithoutMovieNestedInput
@@ -737,9 +853,12 @@ export type MovieUncheckedUpdateManyWithoutLibraryInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -751,9 +870,12 @@ export type MovieSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   title?: boolean
   description?: boolean
   year?: boolean
+  duration?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
-  duration?: boolean
+  voteAverage?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -766,9 +888,12 @@ export type MovieSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   title?: boolean
   description?: boolean
   year?: boolean
+  duration?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
-  duration?: boolean
+  voteAverage?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -780,9 +905,12 @@ export type MovieSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   title?: boolean
   description?: boolean
   year?: boolean
+  duration?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
-  duration?: boolean
+  voteAverage?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -794,15 +922,18 @@ export type MovieSelectScalar = {
   title?: boolean
   description?: boolean
   year?: boolean
+  duration?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
-  duration?: boolean
+  voteAverage?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "year" | "poster" | "backdrop" | "duration" | "libraryId" | "createdAt" | "updatedAt", ExtArgs["result"]["movie"]>
+export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "year" | "duration" | "tmdbId" | "overview" | "poster" | "backdrop" | "voteAverage" | "libraryId" | "createdAt" | "updatedAt", ExtArgs["result"]["movie"]>
 export type MovieInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
   mediaSource?: boolean | Prisma.Movie$mediaSourceArgs<ExtArgs>
@@ -825,9 +956,12 @@ export type $MoviePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     title: string
     description: string | null
     year: number | null
+    duration: number | null
+    tmdbId: number | null
+    overview: string | null
     poster: string | null
     backdrop: string | null
-    duration: number | null
+    voteAverage: number | null
     libraryId: string
     createdAt: Date
     updatedAt: Date
@@ -1260,9 +1394,12 @@ export interface MovieFieldRefs {
   readonly title: Prisma.FieldRef<"Movie", 'String'>
   readonly description: Prisma.FieldRef<"Movie", 'String'>
   readonly year: Prisma.FieldRef<"Movie", 'Int'>
+  readonly duration: Prisma.FieldRef<"Movie", 'Int'>
+  readonly tmdbId: Prisma.FieldRef<"Movie", 'Int'>
+  readonly overview: Prisma.FieldRef<"Movie", 'String'>
   readonly poster: Prisma.FieldRef<"Movie", 'String'>
   readonly backdrop: Prisma.FieldRef<"Movie", 'String'>
-  readonly duration: Prisma.FieldRef<"Movie", 'Int'>
+  readonly voteAverage: Prisma.FieldRef<"Movie", 'Float'>
   readonly libraryId: Prisma.FieldRef<"Movie", 'String'>
   readonly createdAt: Prisma.FieldRef<"Movie", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Movie", 'DateTime'>

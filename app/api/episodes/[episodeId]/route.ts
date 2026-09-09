@@ -18,14 +18,53 @@ export async function GET(
       where: {
         id: episodeId,
       },
-      include: {
-        mediaSource: true,
-        progress: true,
+      select: {
+        id: true,
+        number: true,
+        title: true,
+        description: true,
+        thumbnail: true,
+        duration: true,
+
         season: {
-          include: {
-            series: true,
+          select: {
+            id: true,
+            number: true,
+            title: true,
+
+            series: {
+              select: {
+                id: true,
+                title: true,
+                year: true,
+                poster: true,
+                backdrop: true,
+              },
+            },
           },
         },
+
+        mediaSource: {
+          select: {
+            id: true,
+            type: true,
+            filePath: true,
+            archivePath: true,
+            entryPath: true,
+          },
+        },
+
+        progress: {
+          select: {
+            id: true,
+            position: true,
+            completed: true,
+            updatedAt: true,
+          },
+        },
+
+        createdAt: true,
+        updatedAt: true,
       },
     });
 

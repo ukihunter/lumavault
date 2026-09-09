@@ -27,10 +27,14 @@ export type AggregateSeries = {
 }
 
 export type SeriesAvgAggregateOutputType = {
+  tmdbId: number | null
+  voteAverage: number | null
   year: number | null
 }
 
 export type SeriesSumAggregateOutputType = {
+  tmdbId: number | null
+  voteAverage: number | null
   year: number | null
 }
 
@@ -38,9 +42,12 @@ export type SeriesMinAggregateOutputType = {
   id: string | null
   title: string | null
   description: string | null
-  year: number | null
+  tmdbId: number | null
+  overview: string | null
   poster: string | null
   backdrop: string | null
+  voteAverage: number | null
+  year: number | null
   libraryId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -50,9 +57,12 @@ export type SeriesMaxAggregateOutputType = {
   id: string | null
   title: string | null
   description: string | null
-  year: number | null
+  tmdbId: number | null
+  overview: string | null
   poster: string | null
   backdrop: string | null
+  voteAverage: number | null
+  year: number | null
   libraryId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -62,9 +72,12 @@ export type SeriesCountAggregateOutputType = {
   id: number
   title: number
   description: number
-  year: number
+  tmdbId: number
+  overview: number
   poster: number
   backdrop: number
+  voteAverage: number
+  year: number
   libraryId: number
   createdAt: number
   updatedAt: number
@@ -73,10 +86,14 @@ export type SeriesCountAggregateOutputType = {
 
 
 export type SeriesAvgAggregateInputType = {
+  tmdbId?: true
+  voteAverage?: true
   year?: true
 }
 
 export type SeriesSumAggregateInputType = {
+  tmdbId?: true
+  voteAverage?: true
   year?: true
 }
 
@@ -84,9 +101,12 @@ export type SeriesMinAggregateInputType = {
   id?: true
   title?: true
   description?: true
-  year?: true
+  tmdbId?: true
+  overview?: true
   poster?: true
   backdrop?: true
+  voteAverage?: true
+  year?: true
   libraryId?: true
   createdAt?: true
   updatedAt?: true
@@ -96,9 +116,12 @@ export type SeriesMaxAggregateInputType = {
   id?: true
   title?: true
   description?: true
-  year?: true
+  tmdbId?: true
+  overview?: true
   poster?: true
   backdrop?: true
+  voteAverage?: true
+  year?: true
   libraryId?: true
   createdAt?: true
   updatedAt?: true
@@ -108,9 +131,12 @@ export type SeriesCountAggregateInputType = {
   id?: true
   title?: true
   description?: true
-  year?: true
+  tmdbId?: true
+  overview?: true
   poster?: true
   backdrop?: true
+  voteAverage?: true
+  year?: true
   libraryId?: true
   createdAt?: true
   updatedAt?: true
@@ -207,9 +233,12 @@ export type SeriesGroupByOutputType = {
   id: string
   title: string
   description: string | null
-  year: number | null
+  tmdbId: number | null
+  overview: string | null
   poster: string | null
   backdrop: string | null
+  voteAverage: number | null
+  year: number | null
   libraryId: string
   createdAt: Date
   updatedAt: Date
@@ -242,9 +271,12 @@ export type SeriesWhereInput = {
   id?: Prisma.StringFilter<"Series"> | string
   title?: Prisma.StringFilter<"Series"> | string
   description?: Prisma.StringNullableFilter<"Series"> | string | null
-  year?: Prisma.IntNullableFilter<"Series"> | number | null
+  tmdbId?: Prisma.IntNullableFilter<"Series"> | number | null
+  overview?: Prisma.StringNullableFilter<"Series"> | string | null
   poster?: Prisma.StringNullableFilter<"Series"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Series"> | string | null
+  voteAverage?: Prisma.FloatNullableFilter<"Series"> | number | null
+  year?: Prisma.IntNullableFilter<"Series"> | number | null
   libraryId?: Prisma.StringFilter<"Series"> | string
   createdAt?: Prisma.DateTimeFilter<"Series"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Series"> | Date | string
@@ -256,9 +288,12 @@ export type SeriesOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  year?: Prisma.SortOrderInput | Prisma.SortOrder
+  tmdbId?: Prisma.SortOrderInput | Prisma.SortOrder
+  overview?: Prisma.SortOrderInput | Prisma.SortOrder
   poster?: Prisma.SortOrderInput | Prisma.SortOrder
   backdrop?: Prisma.SortOrderInput | Prisma.SortOrder
+  voteAverage?: Prisma.SortOrderInput | Prisma.SortOrder
+  year?: Prisma.SortOrderInput | Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -273,9 +308,12 @@ export type SeriesWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.SeriesWhereInput | Prisma.SeriesWhereInput[]
   title?: Prisma.StringFilter<"Series"> | string
   description?: Prisma.StringNullableFilter<"Series"> | string | null
-  year?: Prisma.IntNullableFilter<"Series"> | number | null
+  tmdbId?: Prisma.IntNullableFilter<"Series"> | number | null
+  overview?: Prisma.StringNullableFilter<"Series"> | string | null
   poster?: Prisma.StringNullableFilter<"Series"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Series"> | string | null
+  voteAverage?: Prisma.FloatNullableFilter<"Series"> | number | null
+  year?: Prisma.IntNullableFilter<"Series"> | number | null
   libraryId?: Prisma.StringFilter<"Series"> | string
   createdAt?: Prisma.DateTimeFilter<"Series"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Series"> | Date | string
@@ -287,9 +325,12 @@ export type SeriesOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  year?: Prisma.SortOrderInput | Prisma.SortOrder
+  tmdbId?: Prisma.SortOrderInput | Prisma.SortOrder
+  overview?: Prisma.SortOrderInput | Prisma.SortOrder
   poster?: Prisma.SortOrderInput | Prisma.SortOrder
   backdrop?: Prisma.SortOrderInput | Prisma.SortOrder
+  voteAverage?: Prisma.SortOrderInput | Prisma.SortOrder
+  year?: Prisma.SortOrderInput | Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -307,9 +348,12 @@ export type SeriesScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Series"> | string
   title?: Prisma.StringWithAggregatesFilter<"Series"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Series"> | string | null
-  year?: Prisma.IntNullableWithAggregatesFilter<"Series"> | number | null
+  tmdbId?: Prisma.IntNullableWithAggregatesFilter<"Series"> | number | null
+  overview?: Prisma.StringNullableWithAggregatesFilter<"Series"> | string | null
   poster?: Prisma.StringNullableWithAggregatesFilter<"Series"> | string | null
   backdrop?: Prisma.StringNullableWithAggregatesFilter<"Series"> | string | null
+  voteAverage?: Prisma.FloatNullableWithAggregatesFilter<"Series"> | number | null
+  year?: Prisma.IntNullableWithAggregatesFilter<"Series"> | number | null
   libraryId?: Prisma.StringWithAggregatesFilter<"Series"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Series"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Series"> | Date | string
@@ -319,9 +363,12 @@ export type SeriesCreateInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutSeriesInput
@@ -332,9 +379,12 @@ export type SeriesUncheckedCreateInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -345,9 +395,12 @@ export type SeriesUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutSeriesNestedInput
@@ -358,9 +411,12 @@ export type SeriesUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -371,9 +427,12 @@ export type SeriesCreateManyInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -383,9 +442,12 @@ export type SeriesUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -394,9 +456,12 @@ export type SeriesUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -416,15 +481,20 @@ export type SeriesCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  year?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  overview?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
+  year?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type SeriesAvgOrderByAggregateInput = {
+  tmdbId?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
   year?: Prisma.SortOrder
 }
 
@@ -432,9 +502,12 @@ export type SeriesMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  year?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  overview?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
+  year?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -444,15 +517,20 @@ export type SeriesMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  year?: Prisma.SortOrder
+  tmdbId?: Prisma.SortOrder
+  overview?: Prisma.SortOrder
   poster?: Prisma.SortOrder
   backdrop?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
+  year?: Prisma.SortOrder
   libraryId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type SeriesSumOrderByAggregateInput = {
+  tmdbId?: Prisma.SortOrder
+  voteAverage?: Prisma.SortOrder
   year?: Prisma.SortOrder
 }
 
@@ -521,9 +599,12 @@ export type SeriesCreateWithoutLibraryInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   seasons?: Prisma.SeasonCreateNestedManyWithoutSeriesInput
@@ -533,9 +614,12 @@ export type SeriesUncheckedCreateWithoutLibraryInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   seasons?: Prisma.SeasonUncheckedCreateNestedManyWithoutSeriesInput
@@ -573,9 +657,12 @@ export type SeriesScalarWhereInput = {
   id?: Prisma.StringFilter<"Series"> | string
   title?: Prisma.StringFilter<"Series"> | string
   description?: Prisma.StringNullableFilter<"Series"> | string | null
-  year?: Prisma.IntNullableFilter<"Series"> | number | null
+  tmdbId?: Prisma.IntNullableFilter<"Series"> | number | null
+  overview?: Prisma.StringNullableFilter<"Series"> | string | null
   poster?: Prisma.StringNullableFilter<"Series"> | string | null
   backdrop?: Prisma.StringNullableFilter<"Series"> | string | null
+  voteAverage?: Prisma.FloatNullableFilter<"Series"> | number | null
+  year?: Prisma.IntNullableFilter<"Series"> | number | null
   libraryId?: Prisma.StringFilter<"Series"> | string
   createdAt?: Prisma.DateTimeFilter<"Series"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Series"> | Date | string
@@ -585,9 +672,12 @@ export type SeriesCreateWithoutSeasonsInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
   library: Prisma.LibraryCreateNestedOneWithoutSeriesInput
@@ -597,9 +687,12 @@ export type SeriesUncheckedCreateWithoutSeasonsInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   libraryId: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -625,9 +718,12 @@ export type SeriesUpdateWithoutSeasonsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   library?: Prisma.LibraryUpdateOneRequiredWithoutSeriesNestedInput
@@ -637,9 +733,12 @@ export type SeriesUncheckedUpdateWithoutSeasonsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   libraryId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -649,9 +748,12 @@ export type SeriesCreateManyLibraryInput = {
   id?: string
   title: string
   description?: string | null
-  year?: number | null
+  tmdbId?: number | null
+  overview?: string | null
   poster?: string | null
   backdrop?: string | null
+  voteAverage?: number | null
+  year?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -660,9 +762,12 @@ export type SeriesUpdateWithoutLibraryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seasons?: Prisma.SeasonUpdateManyWithoutSeriesNestedInput
@@ -672,9 +777,12 @@ export type SeriesUncheckedUpdateWithoutLibraryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seasons?: Prisma.SeasonUncheckedUpdateManyWithoutSeriesNestedInput
@@ -684,9 +792,12 @@ export type SeriesUncheckedUpdateManyWithoutLibraryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  tmdbId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  overview?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   poster?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   backdrop?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  voteAverage?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  year?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -726,9 +837,12 @@ export type SeriesSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   id?: boolean
   title?: boolean
   description?: boolean
-  year?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
+  voteAverage?: boolean
+  year?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -741,9 +855,12 @@ export type SeriesSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   id?: boolean
   title?: boolean
   description?: boolean
-  year?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
+  voteAverage?: boolean
+  year?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -754,9 +871,12 @@ export type SeriesSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   id?: boolean
   title?: boolean
   description?: boolean
-  year?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
+  voteAverage?: boolean
+  year?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -767,15 +887,18 @@ export type SeriesSelectScalar = {
   id?: boolean
   title?: boolean
   description?: boolean
-  year?: boolean
+  tmdbId?: boolean
+  overview?: boolean
   poster?: boolean
   backdrop?: boolean
+  voteAverage?: boolean
+  year?: boolean
   libraryId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SeriesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "year" | "poster" | "backdrop" | "libraryId" | "createdAt" | "updatedAt", ExtArgs["result"]["series"]>
+export type SeriesOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "tmdbId" | "overview" | "poster" | "backdrop" | "voteAverage" | "year" | "libraryId" | "createdAt" | "updatedAt", ExtArgs["result"]["series"]>
 export type SeriesInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   library?: boolean | Prisma.LibraryDefaultArgs<ExtArgs>
   seasons?: boolean | Prisma.Series$seasonsArgs<ExtArgs>
@@ -798,9 +921,12 @@ export type $SeriesPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     id: string
     title: string
     description: string | null
-    year: number | null
+    tmdbId: number | null
+    overview: string | null
     poster: string | null
     backdrop: string | null
+    voteAverage: number | null
+    year: number | null
     libraryId: string
     createdAt: Date
     updatedAt: Date
@@ -1232,9 +1358,12 @@ export interface SeriesFieldRefs {
   readonly id: Prisma.FieldRef<"Series", 'String'>
   readonly title: Prisma.FieldRef<"Series", 'String'>
   readonly description: Prisma.FieldRef<"Series", 'String'>
-  readonly year: Prisma.FieldRef<"Series", 'Int'>
+  readonly tmdbId: Prisma.FieldRef<"Series", 'Int'>
+  readonly overview: Prisma.FieldRef<"Series", 'String'>
   readonly poster: Prisma.FieldRef<"Series", 'String'>
   readonly backdrop: Prisma.FieldRef<"Series", 'String'>
+  readonly voteAverage: Prisma.FieldRef<"Series", 'Float'>
+  readonly year: Prisma.FieldRef<"Series", 'Int'>
   readonly libraryId: Prisma.FieldRef<"Series", 'String'>
   readonly createdAt: Prisma.FieldRef<"Series", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Series", 'DateTime'>

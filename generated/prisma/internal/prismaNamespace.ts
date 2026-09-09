@@ -994,9 +994,12 @@ export const MovieScalarFieldEnum = {
   title: 'title',
   description: 'description',
   year: 'year',
+  duration: 'duration',
+  tmdbId: 'tmdbId',
+  overview: 'overview',
   poster: 'poster',
   backdrop: 'backdrop',
-  duration: 'duration',
+  voteAverage: 'voteAverage',
   libraryId: 'libraryId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1009,9 +1012,12 @@ export const SeriesScalarFieldEnum = {
   id: 'id',
   title: 'title',
   description: 'description',
-  year: 'year',
+  tmdbId: 'tmdbId',
+  overview: 'overview',
   poster: 'poster',
   backdrop: 'backdrop',
+  voteAverage: 'voteAverage',
+  year: 'year',
   libraryId: 'libraryId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -1124,6 +1130,13 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
 
 
 /**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
  * Reference to a field of type 'MediaSourceType'
  */
 export type EnumMediaSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MediaSourceType'>
@@ -1134,13 +1147,6 @@ export type EnumMediaSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-/**
- * Reference to a field of type 'Float'
- */
-export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 /**

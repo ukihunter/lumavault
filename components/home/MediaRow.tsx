@@ -1,87 +1,50 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useRef } from "react";
+import { ChevronLeft, ChevronRight, Play, Star } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 type MediaItem = {
   id: string;
   title: string;
   type: "movie" | "series";
-  year: number;
-  rating: number;
-  image: string;
+  year: number | null;
+  rating: number | null;
+  image: string | null;
+};
+
+type MovieApiItem = {
+  id: string;
+  title: string;
+  year: number | null;
+  poster: string | null;
+  backdrop: string | null;
+};
+
+type SeriesApiItem = {
+  id: string;
+  title: string;
+  year: number | null;
+  poster: string | null;
+  backdrop: string | null;
 };
 
 type MediaRowProps = {
   title: string;
   subtitle?: string;
-  items?: MediaItem[];
+  type?: "movie" | "series";
 };
-
-const defaultItems: MediaItem[] = [
-  {
-    id: "movie-1",
-    title: "Interstellar",
-    type: "movie",
-    year: 2014,
-    rating: 8.7,
-    image:
-      "https://images.unsplash.com/photo-1446776877081-d282a0f896e2?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "movie-2",
-    title: "The Dark Knight",
-    type: "movie",
-    year: 2008,
-    rating: 9.0,
-    image:
-      "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "movie-3",
-    title: "Inception",
-    type: "movie",
-    year: 2010,
-    rating: 8.8,
-    image:
-      "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "series-1",
-    title: "Ben 10",
-    type: "series",
-    year: 2005,
-    rating: 8.1,
-    image:
-      "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "series-2",
-    title: "The Mandalorian",
-    type: "series",
-    year: 2019,
-    rating: 8.6,
-    image:
-      "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    id: "series-3",
-    title: "Stranger Things",
-    type: "series",
-    year: 2016,
-    rating: 8.7,
-    image:
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=80",
-  },
-];
 
 export function MediaRow({
   title,
   subtitle,
-  items = defaultItems,
+  type,
 }: MediaRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
+
+  const [items, setItems] = useState<MediaItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const scroll = (direction: "left" | "right") => {
     if (!rowRef.current) return;
@@ -93,6 +56,86 @@ export function MediaRow({
       behavior: "smooth",
     });
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMedia() {
+      try {
+        setLoading(true);
+
+        const endpoint =
+          type === "movie"
+            ? "/api/movies"
+            : type === "series"
+              ? "/api/series"
+              : null;
+
+        if (!endpoint) {
+          setItems([]);
+          return;
+        }
+
+        const response = await fetch(endpoint);
+
+        if (!response.ok) {
+          throw new Error(`Failed to load ${type}`);
+        }
+
+        const data = await response.json();
+
+        if (cancelled) return;
+
+        if (type === "movie") {
+          const movies: MovieApiItem[] = data.movies ?? [];
+
+          setItems(
+            movies.map((movie) => ({
+              id: movie.id,
+              title: movie.title,
+              type: "movie",
+              year: movie.year,
+              rating: null,
+              image: movie.poster || movie.backdrop,
+            })),
+          );
+        } else {
+          const series: SeriesApiItem[] = data.series ?? [];
+
+          setItems(
+            series.map((show) => ({
+              id: show.id,
+              title: show.title,
+              type: "series",
+              year: show.year,
+              rating: null,
+              image: show.poster || show.backdrop,
+            })),
+          );
+        }
+      } catch (error) {
+        console.error("MediaRow error:", error);
+
+        if (!cancelled) {
+          setItems([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadMedia();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [type]);
+
+  if (!loading && items.length === 0) {
+    return null;
+  }
 
   return (
     <section className="group/row relative">
@@ -175,9 +218,13 @@ export function MediaRow({
           sm:gap-5
         "
       >
-        {items.map((item) => (
-          <MediaCard key={item.id} item={item} />
-        ))}
+        {loading
+          ? Array.from({ length: 6 }).map((_, index) => (
+              <MediaCardSkeleton key={index} />
+            ))
+          : items.map((item) => (
+              <MediaCard key={item.id} item={item} />
+            ))}
       </div>
 
       {/* Right button */}
@@ -253,19 +300,30 @@ function MediaCard({ item }: { item: MediaItem }) {
           group-hover:shadow-black/60
         "
       >
-        <img
-          src={item.image}
-          alt={item.title}
-          loading="lazy"
-          className="
-            h-full
-            w-full
-            object-cover
-            transition-transform
-            duration-500
-            group-hover:scale-105
-          "
-        />
+        {item.image ? (
+          <Image
+            src={item.image}
+            alt={item.title}
+            fill
+            sizes="
+              (max-width: 640px) 150px,
+              (max-width: 1024px) 175px,
+              190px
+            "
+            className="
+              object-cover
+              transition-transform
+              duration-500
+              group-hover:scale-105
+            "
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 px-4 text-center">
+            <span className="text-sm font-medium text-white/30">
+              {item.title}
+            </span>
+          </div>
+        )}
 
         {/* Overlay */}
         <div
@@ -279,7 +337,7 @@ function MediaCard({ item }: { item: MediaItem }) {
           "
         />
 
-        {/* Hover play button */}
+        {/* Hover play */}
         <div
           className="
             absolute
@@ -299,6 +357,7 @@ function MediaCard({ item }: { item: MediaItem }) {
               flex
               h-11
               w-11
+              scale-90
               items-center
               justify-center
               rounded-full
@@ -308,14 +367,13 @@ function MediaCard({ item }: { item: MediaItem }) {
               transition-transform
               duration-300
               group-hover:scale-100
-              scale-90
             "
           >
             <Play className="ml-0.5 h-5 w-5 fill-current" />
           </div>
         </div>
 
-        {/* Type badge */}
+        {/* Type */}
         <div
           className="
             absolute
@@ -341,11 +399,18 @@ function MediaCard({ item }: { item: MediaItem }) {
         {/* Bottom metadata */}
         <div className="absolute inset-x-0 bottom-0 p-3">
           <div className="flex items-center gap-2 text-[10px] text-white/60">
-            <span>{item.year}</span>
+            {item.year && <span>{item.year}</span>}
 
-            <span className="h-1 w-1 rounded-full bg-white/40" />
+            {item.year && item.rating !== null && (
+              <span className="h-1 w-1 rounded-full bg-white/40" />
+            )}
 
-            <span>★ {item.rating}</span>
+            {item.rating !== null && (
+              <span className="flex items-center gap-1">
+                <Star className="h-2.5 w-2.5 fill-current" />
+                {item.rating.toFixed(1)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -365,5 +430,30 @@ function MediaCard({ item }: { item: MediaItem }) {
         {item.title}
       </h3>
     </Link>
+  );
+}
+
+function MediaCardSkeleton() {
+  return (
+    <div
+      className="
+        w-[150px]
+        shrink-0
+        sm:w-[175px]
+        lg:w-[190px]
+        xl:w-[205px]
+      "
+    >
+      <div
+        className="
+          aspect-[2/3]
+          animate-pulse
+          rounded-lg
+          bg-zinc-900
+        "
+      />
+
+      <div className="mt-3 h-4 w-3/4 animate-pulse rounded bg-zinc-900" />
+    </div>
   );
 }

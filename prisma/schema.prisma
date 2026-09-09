@@ -37,11 +37,15 @@ model Movie {
   description String?
   year        Int?
 
-  poster      String?
-  backdrop    String?
+ 
 
   duration    Int?
-
+   // TMDB metadata
+  tmdbId      Int?
+  overview    String?
+  poster      String?
+  backdrop    String?
+  voteAverage Float?
   libraryId   String
   library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 
@@ -59,11 +63,15 @@ model Series {
   id          String   @id @default(cuid())
   title       String
   description String?
-  year        Int?
+  
 
+// TMDB metadata
+  tmdbId      Int?
+  overview    String?
   poster      String?
   backdrop    String?
-
+  voteAverage Float?
+  year        Int?
   libraryId   String
   library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 

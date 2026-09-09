@@ -7,28 +7,47 @@ export async function GET() {
       orderBy: {
         title: "asc",
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        year: true,
+        poster: true,
+        backdrop: true,
+
+        library: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
         seasons: {
           orderBy: {
             number: "asc",
           },
-          include: {
-            episodes: {
-              orderBy: {
-                number: "asc",
-              },
-              include: {
-                mediaSource: true,
+          select: {
+            id: true,
+            number: true,
+            title: true,
+
+            _count: {
+              select: {
+                episodes: true,
               },
             },
           },
         },
+
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
     return NextResponse.json({
       success: true,
       series,
+      count: series.length,
     });
   } catch (error) {
     console.error("GET /api/series error:", error);

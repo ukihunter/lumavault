@@ -1,72 +1,398 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Play, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 type ContinueItem = {
-  id: number;
+  id: string;
   title: string;
   subtitle: string;
-  image: string;
+  image: string | null;
   progress: number;
   duration: string;
   remaining: string;
 };
 
-const continueWatching: ContinueItem[] = [
-  {
-    id: 1,
-    title: "Ben 10",
-    subtitle: "S01 E03 • The Krakken",
-    image:
-      "https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1200&q=80",
-    progress: 68,
-    duration: "22 min",
-    remaining: "7 min left",
-  },
-  {
-    id: 2,
-    title: "Stranger Things",
-    subtitle: "S04 E04 • Chapter Four",
-    image:
-      "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80",
-    progress: 42,
-    duration: "58 min",
-    remaining: "34 min left",
-  },
-  {
-    id: 3,
-    title: "The Dark Knight",
-    subtitle: "Movie",
-    image:
-      "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80",
-    progress: 31,
-    duration: "2h 32m",
-    remaining: "1h 44m left",
-  },
-  {
-    id: 4,
-    title: "Adventure Time",
-    subtitle: "S05 E12 • Vault",
-    image:
-      "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?auto=format&fit=crop&w=1200&q=80",
-    progress: 76,
-    duration: "11 min",
-    remaining: "3 min left",
-  },
-  {
-    id: 5,
-    title: "The Mandalorian",
-    subtitle: "S03 E02 • The Mines",
-    image:
-      "https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?auto=format&fit=crop&w=1200&q=80",
-    progress: 54,
-    duration: "42 min",
-    remaining: "19 min left",
-  },
-];
+type ProgressResponse = {
+  success: boolean;
+  progress?: Array<{
+    id: string;
+    position: number;
+    completed: boolean;
+    updatedAt: string;
+
+    episode: {
+      id: string;
+      number: number;
+      title: string;
+      duration: number | null;
+      thumbnail: string | null;
+
+      season: {
+        number: number;
+
+        series: {
+          id: string;
+          title: string;
+          poster: string | null;
+          backdrop: string | null;
+        };
+      };
+    };
+  }>;
+
+  count?: number;
+  error?: string;
+};
+
+function formatDuration(seconds: number | null) {
+  if (!seconds || seconds <= 0) {
+    return "--";
+  }
+
+  const totalMinutes = Math.max(1, Math.round(seconds / 60));
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${minutes}m`;
+}
+
+function formatRemaining(
+  seconds: number | null,
+  position: number,
+) {
+  if (!seconds || seconds <= 0) {
+    return "";
+  }
+
+  const remainingSeconds = Math.max(
+    0,
+    seconds - position,
+  );
+
+  const totalMinutes = Math.ceil(
+    remainingSeconds / 60,
+  );
+
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min left`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours}h left`;
+  }
+
+  return `${hours}h ${minutes}m left`;
+}
+
+function getProgress(
+  position: number,
+  duration: number | null,
+) {
+  if (!duration || duration <= 0) {
+    return 0;
+  }
+
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      (position / duration) * 100,
+    ),
+  );
+}
+
+function getImage(
+  thumbnail: string | null,
+  backdrop: string | null,
+  poster: string | null,
+) {
+  return (
+    thumbnail ||
+    backdrop ||
+    poster ||
+    null
+  );
+}
 
 export function ContinueWatching() {
+  const [items, setItems] = useState<
+    ContinueItem[]
+  >([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState<string | null>(null);
+
+  const loadContinueWatching =
+    useCallback(async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(
+          "/api/progress",
+          {
+            cache: "no-store",
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load continue watching",
+          );
+        }
+
+        const data: ProgressResponse =
+          await response.json();
+
+        if (
+          !data.success ||
+          !data.progress
+        ) {
+          setItems([]);
+          return;
+        }
+
+        const mappedItems: ContinueItem[] =
+          data.progress
+            .filter(
+              (item) =>
+                !item.completed &&
+                item.position > 0,
+            )
+            .map((item) => {
+              const episode =
+                item.episode;
+
+              const duration =
+                episode.duration;
+
+              return {
+                id: episode.id,
+
+                title:
+                  episode.season.series
+                    .title,
+
+                subtitle:
+                  `S${String(
+                    episode.season.number,
+                  ).padStart(
+                    2,
+                    "0",
+                  )} E${String(
+                    episode.number,
+                  ).padStart(
+                    2,
+                    "0",
+                  )} • ${
+                    episode.title
+                  }`,
+
+                image: getImage(
+                  episode.thumbnail,
+                  episode.season.series
+                    .backdrop,
+                  episode.season.series
+                    .poster,
+                ),
+
+                /*
+                 * If duration is known,
+                 * calculate the real percentage.
+                 *
+                 * If duration is unknown,
+                 * keep 0 rather than inventing
+                 * a percentage.
+                 */
+                progress:
+                  duration
+                    ? getProgress(
+                        item.position,
+                        duration,
+                      )
+                    : 0,
+
+                duration:
+                  formatDuration(
+                    duration,
+                  ),
+
+                /*
+                 * When duration isn't known,
+                 * show how much has actually
+                 * been watched.
+                 */
+                remaining:
+                  duration
+                    ? formatRemaining(
+                        duration,
+                        item.position,
+                      )
+                    : `${item.position}s watched`,
+              };
+            });
+
+        setItems(mappedItems);
+      } catch (error) {
+        console.error(
+          "Failed to load continue watching:",
+          error,
+        );
+
+        setError(
+          "Failed to load continue watching",
+        );
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    }, []);
+
+  useEffect(() => {
+    loadContinueWatching();
+  }, [loadContinueWatching]);
+
+  async function removeItem(id: string) {
+    const previousItems = items;
+
+    /*
+     * Remove immediately from UI.
+     */
+    setItems((current) =>
+      current.filter(
+        (item) => item.id !== id,
+      ),
+    );
+
+    try {
+      const response = await fetch(
+        `/api/progress?episodeId=${encodeURIComponent(
+          id,
+        )}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to remove progress",
+        );
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(
+          data.error ||
+            "Failed to remove progress",
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to remove progress:",
+        error,
+      );
+
+      /*
+       * Restore the card if the
+       * database deletion failed.
+       */
+      setItems(previousItems);
+    }
+  }
+
+  /*
+   * Loading state
+   */
+  if (loading) {
+    return (
+      <section className="relative">
+        <div className="mb-5">
+          <div className="mb-2 h-3 w-40 animate-pulse rounded bg-white/10" />
+
+          <div className="h-7 w-56 animate-pulse rounded bg-white/10" />
+        </div>
+
+        <div
+          className="
+            -mx-4
+            flex
+            gap-4
+            overflow-hidden
+            px-4
+            sm:-mx-6
+            sm:px-6
+            lg:-mx-10
+            lg:px-10
+          "
+        >
+          {Array.from({
+            length: 4,
+          }).map((_, index) => (
+            <div
+              key={index}
+              className="
+                w-[270px]
+                shrink-0
+                overflow-hidden
+                rounded-xl
+                bg-zinc-900
+                sm:w-[310px]
+                lg:w-[340px]
+              "
+            >
+              <div className="aspect-video animate-pulse bg-zinc-800" />
+
+              <div className="h-1 bg-white/5" />
+
+              <div className="space-y-3 p-4">
+                <div className="h-4 w-32 animate-pulse rounded bg-white/10" />
+
+                <div className="h-3 w-48 animate-pulse rounded bg-white/10" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  /*
+   * Error state
+   */
+  if (error) {
+    return null;
+  }
+
+  /*
+   * Nothing to continue.
+   *
+   * This is expected when there are
+   * no unfinished progress records.
+   */
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <section className="relative">
       {/* Heading */}
@@ -84,7 +410,9 @@ export function ContinueWatching() {
         <Link
           href="/library?filter=continue"
           className="
-            hidden text-sm font-medium
+            hidden
+            text-sm
+            font-medium
             text-white/40
             transition
             hover:text-white
@@ -98,25 +426,43 @@ export function ContinueWatching() {
       {/* Cards */}
       <div
         className="
-          -mx-4 flex gap-4 overflow-x-auto px-4 pb-4
+          -mx-4
+          flex
+          gap-4
+          overflow-x-auto
+          px-4
+          pb-4
           scrollbar-none
-          sm:-mx-6 sm:px-6
-          lg:-mx-10 lg:px-10
+          sm:-mx-6
+          sm:px-6
+          lg:-mx-10
+          lg:px-10
         "
       >
-        {continueWatching.map((item) => (
-          <ContinueCard key={item.id} item={item} />
+        {items.map((item) => (
+          <ContinueCard
+            key={item.id}
+            item={item}
+            onRemove={removeItem}
+          />
         ))}
       </div>
     </section>
   );
 }
 
-function ContinueCard({ item }: { item: ContinueItem }) {
+function ContinueCard({
+  item,
+  onRemove,
+}: {
+  item: ContinueItem;
+  onRemove: (id: string) => void;
+}) {
   return (
     <article
       className="
-        group relative
+        group
+        relative
         w-[270px]
         shrink-0
         overflow-hidden
@@ -135,23 +481,62 @@ function ContinueCard({ item }: { item: ContinueItem }) {
       {/* Thumbnail */}
       <Link
         href={`/watch/${item.id}`}
-        className="relative block aspect-video overflow-hidden"
+        className="
+          relative
+          block
+          aspect-video
+          overflow-hidden
+        "
       >
-        <img
-          src={item.image}
-          alt={item.title}
-          className="
-            h-full w-full
-            object-cover
-            transition duration-500
-            group-hover:scale-105
-          "
-        />
+        {item.image ? (
+          <Image
+            src={item.image}
+            alt={item.title}
+            fill
+            sizes="
+              (max-width: 640px) 270px,
+              (max-width: 1024px) 310px,
+              340px
+            "
+            className="
+              object-cover
+              transition
+              duration-500
+              group-hover:scale-105
+            "
+          />
+        ) : (
+          <div
+            className="
+              absolute
+              inset-0
+              flex
+              items-center
+              justify-center
+              bg-gradient-to-br
+              from-zinc-800
+              via-zinc-900
+              to-black
+              px-6
+            "
+          >
+            <div className="text-center">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/20">
+                Continue Watching
+              </p>
+
+              <p className="mt-2 line-clamp-2 text-sm font-semibold text-white/40">
+                {item.title}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Dark overlay */}
         <div
           className="
-            absolute inset-0
+            absolute
+            inset-0
             bg-gradient-to-t
             from-black/80
             via-transparent
@@ -162,8 +547,11 @@ function ContinueCard({ item }: { item: ContinueItem }) {
         {/* Play button */}
         <div
           className="
-            absolute inset-0
-            flex items-center justify-center
+            absolute
+            inset-0
+            flex
+            items-center
+            justify-center
             opacity-0
             transition
             duration-300
@@ -172,8 +560,11 @@ function ContinueCard({ item }: { item: ContinueItem }) {
         >
           <div
             className="
-              flex h-12 w-12
-              items-center justify-center
+              flex
+              h-12
+              w-12
+              items-center
+              justify-center
               rounded-full
               bg-white
               text-black
@@ -186,31 +577,45 @@ function ContinueCard({ item }: { item: ContinueItem }) {
           </div>
         </div>
 
-        {/* Remaining time */}
-        <span
-          className="
-            absolute bottom-3 left-3
-            rounded-md
-            bg-black/70
-            px-2 py-1
-            text-[10px] font-medium
-            text-white/80
-            backdrop-blur-sm
-          "
-        >
-          {item.remaining}
-        </span>
+        {/* Remaining / watched */}
+        {item.remaining && (
+          <span
+            className="
+              absolute
+              bottom-3
+              left-3
+              rounded-md
+              bg-black/70
+              px-2
+              py-1
+              text-[10px]
+              font-medium
+              text-white/80
+              backdrop-blur-sm
+            "
+          >
+            {item.remaining}
+          </span>
+        )}
 
         {/* Remove */}
         <button
           type="button"
           onClick={(event) => {
             event.preventDefault();
+            event.stopPropagation();
+
+            onRemove(item.id);
           }}
           className="
-            absolute right-3 top-3
-            flex h-8 w-8
-            items-center justify-center
+            absolute
+            right-3
+            top-3
+            flex
+            h-8
+            w-8
+            items-center
+            justify-center
             rounded-full
             bg-black/60
             text-white/60
@@ -229,10 +634,19 @@ function ContinueCard({ item }: { item: ContinueItem }) {
 
       {/* Progress */}
       <div className="h-1 w-full bg-white/10">
-        <div
-          className="h-full bg-red-600 transition-all duration-500"
-          style={{ width: `${item.progress}%` }}
-        />
+        {item.progress > 0 && (
+          <div
+            className="
+              h-full
+              bg-red-600
+              transition-all
+              duration-500
+            "
+            style={{
+              width: `${item.progress}%`,
+            }}
+          />
+        )}
       </div>
 
       {/* Information */}

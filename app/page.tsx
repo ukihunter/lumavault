@@ -13,9 +13,17 @@ export default function HomePage() {
 
         <RecentlyAdded />
 
-        <MediaRow title="Popular Movies" />
+      <MediaRow
+  title="Movies"
+  subtitle="Your movie collection"
+  type="movie"
+/>
 
-        <MediaRow title="TV Series" />
+<MediaRow
+  title="TV Series"
+  subtitle="Your series collection"
+  type="series"
+/>
       </div>
     </main>
   );
