@@ -1,8 +1,4 @@
-╭─~ 
-╰─❯  curl -X POST \
+curl -X POST \
            -H "Content-Type: application/json" \
            -d '{"force":true,"syncEpisodes":true}' \
            http://localhost:3000/api/metadata
-{"success":true,"result":{"movies":{"total":9,"matched":9,"skipped":0,"failed":0},"series":{"total":5,"matched":5,"skipped":0,"failed":0},"episodes":{"total":382,"matched":382,"skipped":0,"failed":0},"errors":[]}}⏎                      
-╭─~ 
-╰─❯  
