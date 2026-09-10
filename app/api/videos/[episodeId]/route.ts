@@ -1,104 +1,99 @@
-import { NextResponse } from "next/server";
-import {
-  createReadStream,
-  statSync,
-} from "node:fs";
-import { Readable, Transform } from "node:stream";
-import path from "node:path";
-import yauzl from "yauzl";
-import { prisma } from "@/lib/db/prisma";
+import "server-only";
 
-type RouteContext = {
-  params: Promise<{
-    episodeId: string;
-  }>;
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { spawn } from "node:child_process";
+
+import { NextRequest, NextResponse } from "next/server";
+
+import { getEpisodePlayableFile } from "@/lib/media/episode-source";
+import { probeMediaFile } from "@/lib/media/ffprobe";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type Range = {
+  start: number;
+  end: number;
 };
 
-function getContentType(filePath: string): string {
-  const extension = path
-    .extname(filePath)
-    .toLowerCase();
+const remuxJobs = new Map<
+  string,
+  Promise<string>
+>();
 
-  switch (extension) {
-    case ".mp4":
-      return "video/mp4";
+function getAudioCacheDirectory() {
+  const configured =
+    process.env.LUMAVAULT_CACHE_DIR?.trim();
 
-    case ".webm":
-      return "video/webm";
+  const base =
+    configured ||
+    path.join(
+      process.env.HOME || process.cwd(),
+      ".cache",
+      "lumavault",
+      "media",
+    );
 
-    case ".mkv":
-      return "video/x-matroska";
+  return path.join(base, "audio");
+}
 
-    case ".mov":
-      return "video/quicktime";
-
-    case ".avi":
-      return "video/x-msvideo";
-
-    case ".m4v":
-      return "video/x-m4v";
-
-    case ".ts":
-      return "video/mp2t";
-
-    case ".m2ts":
-      return "video/mp2t";
-
-    case ".wmv":
-      return "video/x-ms-wmv";
-
-    case ".flv":
-      return "video/x-flv";
-
-    default:
-      return "application/octet-stream";
-  }
+function createHash(value: string) {
+  return crypto
+    .createHash("sha256")
+    .update(value)
+    .digest("hex");
 }
 
 function parseRange(
-  rangeHeader: string | null,
-  fileSize: number,
-) {
-  if (!rangeHeader) {
+  header: string | null,
+  size: number,
+): Range | null {
+  if (!header) {
     return null;
   }
 
-  const match = rangeHeader.match(
-    /^bytes=(\d*)-(\d*)$/,
-  );
-
-  if (!match) {
-    return {
-      invalid: true,
-    } as const;
+  if (!header.startsWith("bytes=")) {
+    return null;
   }
 
-  const startText = match[1];
-  const endText = match[2];
+  const value =
+    header.slice("bytes=".length).trim();
+
+  /*
+   * We intentionally support one range only.
+   * This is enough for normal HTML5 video playback.
+   */
+  if (value.includes(",")) {
+    return null;
+  }
+
+  const [startText, endText] =
+    value.split("-");
 
   let start: number;
   let end: number;
 
-  // Example:
-  // bytes=-500
-  if (!startText) {
-    const suffixLength = Number(endText);
+  /*
+   * bytes=-500
+   */
+  if (startText === "") {
+    const suffix = Number(endText);
 
     if (
-      !Number.isFinite(suffixLength) ||
-      suffixLength <= 0
+      !Number.isFinite(suffix) ||
+      suffix <= 0
     ) {
-      return {
-        invalid: true,
-      } as const;
+      return null;
     }
 
     start = Math.max(
-      fileSize - suffixLength,
+      size - suffix,
       0,
     );
 
-    end = fileSize - 1;
+    end = size - 1;
   } else {
     start = Number(startText);
 
@@ -106,577 +101,564 @@ function parseRange(
       !Number.isFinite(start) ||
       start < 0
     ) {
-      return {
-        invalid: true,
-      } as const;
+      return null;
     }
 
-    if (!endText) {
-      end = fileSize - 1;
+    if (endText === "") {
+      end = size - 1;
     } else {
       end = Number(endText);
+
+      if (
+        !Number.isFinite(end) ||
+        end < start
+      ) {
+        return null;
+      }
+
+      end = Math.min(
+        end,
+        size - 1,
+      );
     }
   }
 
   if (
-    start >= fileSize ||
+    start >= size ||
+    start < 0 ||
     end < start
   ) {
-    return {
-      invalid: true,
-    } as const;
+    return null;
   }
-
-  end = Math.min(
-    end,
-    fileSize - 1,
-  );
 
   return {
-    invalid: false,
     start,
     end,
-    contentLength: end - start + 1,
-  } as const;
+  };
 }
 
-function findZipEntry(
-  archivePath: string,
-  entryPath: string,
-): Promise<{
-  zipfile: yauzl.ZipFile;
-  entry: yauzl.Entry;
-}> {
-  return new Promise(
-    (resolve, reject) => {
-      yauzl.open(
-        archivePath,
-        {
-          lazyEntries: true,
-          autoClose: false,
-        },
-        (error, zipfile) => {
-          if (error || !zipfile) {
-            reject(
-              error ??
-                new Error(
-                  "Failed to open ZIP archive",
-                ),
-            );
-            return;
-          }
-
-          let found = false;
-
-          zipfile.readEntry();
-
-          zipfile.on(
-            "entry",
-            (entry) => {
-              const normalizedEntryPath =
-                entry.fileName.replaceAll(
-                  "\\",
-                  "/",
-                );
-
-              if (
-                normalizedEntryPath ===
-                entryPath.replaceAll("\\", "/")
-              ) {
-                found = true;
-
-                resolve({
-                  zipfile,
-                  entry,
-                });
-
-                return;
-              }
-
-              zipfile.readEntry();
-            },
-          );
-
-          zipfile.on(
-            "end",
-            () => {
-              if (found) {
-                return;
-              }
-
-              zipfile.close();
-
-              reject(
-                new Error(
-                  `ZIP entry not found: ${entryPath}`,
-                ),
-              );
-            },
-          );
-
-          zipfile.on(
-            "error",
-            (zipError) => {
-              if (!found) {
-                reject(zipError);
-              }
-            },
-          );
-        },
-      );
-    },
-  );
-}
-
-/**
- * Creates a stream containing only the requested
- * uncompressed byte range from a ZIP entry.
- *
- * ZIP entries using Deflate cannot seek directly
- * inside the uncompressed data, so yauzl must
- * decompress from the beginning.
- */
-function createZipRangeStream(
-  zipfile: yauzl.ZipFile,
-  entry: yauzl.Entry,
-  start: number,
-  length: number,
-): Promise<Readable> {
-  return new Promise(
-    (resolve, reject) => {
-      zipfile.openReadStream(
-        entry,
-        (error, source) => {
-          if (error || !source) {
-            zipfile.close();
-
-            reject(
-              error ??
-                new Error(
-                  "Failed to open ZIP entry stream",
-                ),
-            );
-
-            return;
-          }
-
-          let skipped = 0;
-          let remaining = length;
-          let resolved = false;
-
-          const output = new Transform({
-            transform(
-              chunk,
-              _encoding,
-              callback,
-            ) {
-              const buffer = Buffer.isBuffer(chunk)
-                ? chunk
-                : Buffer.from(chunk);
-
-              // Skip bytes until we reach
-              // the requested starting position.
-              if (skipped < start) {
-                const bytesToSkip = Math.min(
-                  start - skipped,
-                  buffer.length,
-                );
-
-                skipped += bytesToSkip;
-
-                if (
-                  bytesToSkip === buffer.length
-                ) {
-                  callback();
-                  return;
-                }
-
-                const remainingBuffer =
-                  buffer.subarray(
-                    bytesToSkip,
-                  );
-
-                if (remaining <= 0) {
-                  callback();
-                  return;
-                }
-
-                const outputLength =
-                  Math.min(
-                    remaining,
-                    remainingBuffer.length,
-                  );
-
-                this.push(
-                  remainingBuffer.subarray(
-                    0,
-                    outputLength,
-                  ),
-                );
-
-                remaining -= outputLength;
-
-                callback();
-                return;
-              }
-
-              if (remaining <= 0) {
-                callback();
-                return;
-              }
-
-              const outputLength =
-                Math.min(
-                  remaining,
-                  buffer.length,
-                );
-
-              this.push(
-                buffer.subarray(
-                  0,
-                  outputLength,
-                ),
-              );
-
-              remaining -= outputLength;
-
-              if (remaining <= 0) {
-                source.destroy();
-              }
-
-              callback();
-            },
-          });
-
-          const cleanup = () => {
-            if (!resolved) {
-              resolved = true;
-              resolve(output);
-            }
-          };
-
-          source.on(
-            "error",
-            (streamError) => {
-              output.destroy(streamError);
-              zipfile.close();
-
-              if (!resolved) {
-                resolved = true;
-                reject(streamError);
-              }
-            },
-          );
-
-          source.on(
-            "end",
-            () => {
-              zipfile.close();
-            },
-          );
-
-          output.on(
-            "close",
-            () => {
-              if (!source.destroyed) {
-                source.destroy();
-              }
-
-              zipfile.close();
-            },
-          );
-
-          source.pipe(output);
-
-          cleanup();
-        },
-      );
-    },
-  );
-}
-
-async function streamNormalFile(
+function serveFile(
+  request: NextRequest,
   filePath: string,
-  request: Request,
-) {
-  let fileSize: number;
+): Response {
+  const stat = fs.statSync(filePath);
 
-  try {
-    fileSize = statSync(filePath).size;
-  } catch {
-    return new NextResponse(
-      "Video file not found",
-      {
-        status: 404,
-      },
-    );
+  const size = stat.size;
+
+  if (size <= 0) {
+    return new Response(null, {
+      status: 404,
+    });
   }
-
-  const contentType =
-    getContentType(filePath);
 
   const rangeHeader =
     request.headers.get("range");
 
-  const range = parseRange(
-    rangeHeader,
-    fileSize,
-  );
+  /*
+   * Browser requested a byte range.
+   */
+  if (rangeHeader) {
+    const range = parseRange(
+      rangeHeader,
+      size,
+    );
 
-  if (range?.invalid) {
-    return new NextResponse(
-      "Requested Range Not Satisfiable",
-      {
+    if (!range) {
+      return new Response(null, {
         status: 416,
         headers: {
-          "Content-Range":
-            `bytes */${fileSize}`,
+          "Content-Range": `bytes */${size}`,
+          "Accept-Ranges": "bytes",
         },
-      },
-    );
-  }
+      });
+    }
 
-  if (!range) {
+    const contentLength =
+      range.end - range.start + 1;
+
+    if (request.method === "HEAD") {
+      return new Response(null, {
+        status: 206,
+        headers: {
+          "Content-Type": "video/mp4",
+          "Content-Length":
+            String(contentLength),
+          "Content-Range":
+            `bytes ${range.start}-${range.end}/${size}`,
+          "Accept-Ranges": "bytes",
+          "Cache-Control":
+            "private, max-age=3600",
+        },
+      });
+    }
+
     const stream =
-      createReadStream(filePath);
+      fs.createReadStream(filePath, {
+        start: range.start,
+        end: range.end,
+      });
 
     return new Response(
-      Readable.toWeb(
-        stream,
-      ) as ReadableStream,
+      stream as unknown as BodyInit,
       {
-        status: 200,
+        status: 206,
         headers: {
-          "Content-Type": contentType,
+          "Content-Type": "video/mp4",
           "Content-Length":
-            String(fileSize),
+            String(contentLength),
+          "Content-Range":
+            `bytes ${range.start}-${range.end}/${size}`,
           "Accept-Ranges": "bytes",
-          "Cache-Control": "no-cache",
+          "Cache-Control":
+            "private, max-age=3600",
         },
       },
     );
   }
 
-  const stream = createReadStream(
-    filePath,
-    {
-      start: range.start,
-      end: range.end,
-    },
-  );
+  /*
+   * Browser requested entire file.
+   */
+  if (request.method === "HEAD") {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Content-Type": "video/mp4",
+        "Content-Length": String(size),
+        "Accept-Ranges": "bytes",
+        "Cache-Control":
+          "private, max-age=3600",
+      },
+    });
+  }
+
+  const stream =
+    fs.createReadStream(filePath);
 
   return new Response(
-    Readable.toWeb(
-      stream,
-    ) as ReadableStream,
+    stream as unknown as BodyInit,
     {
-      status: 206,
+      status: 200,
       headers: {
-        "Content-Type": contentType,
-        "Content-Length":
-          String(range.contentLength),
-        "Content-Range":
-          `bytes ${range.start}-${range.end}/${fileSize}`,
+        "Content-Type": "video/mp4",
+        "Content-Length": String(size),
         "Accept-Ranges": "bytes",
-        "Cache-Control": "no-cache",
+        "Cache-Control":
+          "private, max-age=3600",
       },
     },
   );
 }
 
-async function streamZipEntry(
-  archivePath: string,
-  entryPath: string,
-  request: Request,
-) {
-  const {
-    zipfile,
-    entry,
-  } = await findZipEntry(
-    archivePath,
-    entryPath,
-  );
+function runFfmpeg(
+  inputPath: string,
+  outputPath: string,
+  audioStreamIndex: number,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "-hide_banner",
+      "-loglevel",
+      "error",
 
-  const fileSize =
-    entry.uncompressedSize;
+      "-i",
+      inputPath,
 
-  const contentType =
-    getContentType(entryPath);
+      /*
+       * First video stream.
+       */
+      "-map",
+      "0:v:0",
 
-  const rangeHeader =
-    request.headers.get("range");
+      /*
+       * Exact global FFmpeg stream index.
+       */
+      "-map",
+      `0:${audioStreamIndex}`,
 
-  const range = parseRange(
-    rangeHeader,
-    fileSize,
-  );
+      /*
+       * No video transcoding.
+       */
+      "-c:v",
+      "copy",
 
-  if (range?.invalid) {
-    zipfile.close();
+      /*
+       * No audio transcoding.
+       */
+      "-c:a",
+      "copy",
 
-    return new NextResponse(
-      "Requested Range Not Satisfiable",
+      /*
+       * Make MP4 seekable immediately.
+       */
+      "-movflags",
+      "+faststart",
+
+      "-y",
+      outputPath,
+    ];
+
+    console.log(
+      `[LumaVault] FFmpeg audio remux: stream ${audioStreamIndex}`,
+    );
+
+    const child = spawn(
+      "ffmpeg",
+      args,
       {
-        status: 416,
-        headers: {
-          "Content-Range":
-            `bytes */${fileSize}`,
-        },
+        stdio: ["ignore", "ignore", "pipe"],
       },
     );
-  }
 
-  const start =
-    range?.start ?? 0;
+    let stderr = "";
 
-  const end =
-    range?.end ?? fileSize - 1;
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
 
-  const contentLength =
-    end - start + 1;
+    child.on("error", reject);
 
-  const stream =
-    await createZipRangeStream(
-      zipfile,
-      entry,
-      start,
-      contentLength,
-    );
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
 
-  return new Response(
-    Readable.toWeb(
-      stream,
-    ) as ReadableStream,
+      reject(
+        new Error(
+          `FFmpeg exited with code ${code}: ${stderr.trim()}`,
+        ),
+      );
+    });
+  });
+}
+
+async function getAudioCache(
+  episodeId: string,
+  filePath: string,
+  audioStreamIndex: number,
+) {
+  const sourceStat =
+    await fs.promises.stat(filePath);
+
+  const key = createHash(
+    [
+      episodeId,
+      filePath,
+      sourceStat.size,
+      sourceStat.mtimeMs,
+      audioStreamIndex,
+    ].join("|"),
+  );
+
+  const directory =
+    getAudioCacheDirectory();
+
+  await fs.promises.mkdir(
+    directory,
     {
-      status: range ? 206 : 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length":
-          String(contentLength),
-        ...(range
-          ? {
-              "Content-Range":
-                `bytes ${start}-${end}/${fileSize}`,
-            }
-          : {}),
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "no-cache",
-      },
+      recursive: true,
     },
   );
+
+  const outputPath = path.join(
+    directory,
+    `${key}.mp4`,
+  );
+
+  /*
+   * Persistent cache hit.
+   */
+  try {
+    const stat =
+      await fs.promises.stat(
+        outputPath,
+      );
+
+    if (stat.size > 0) {
+      console.log(
+        `[LumaVault] Audio cache hit: ${outputPath}`,
+      );
+
+      return outputPath;
+    }
+  } catch {
+    // Cache doesn't exist.
+  }
+
+  /*
+   * Avoid two simultaneous FFmpeg jobs
+   * creating the same cache file.
+   */
+  const existing =
+    remuxJobs.get(outputPath);
+
+  if (existing) {
+    console.log(
+      `[LumaVault] Waiting for audio cache: ${outputPath}`,
+    );
+
+    return existing;
+  }
+
+  /*
+   * IMPORTANT:
+   *
+   * Temporary filename ends in .mp4.
+   * FFmpeg therefore knows the output container.
+   */
+  const temporaryPath = path.join(
+    directory,
+    `${key}.${process.pid}.${Date.now()}.tmp.mp4`,
+  );
+
+  const job = (async () => {
+    try {
+      await fs.promises.rm(
+        temporaryPath,
+        {
+          force: true,
+        },
+      );
+
+      await runFfmpeg(
+        filePath,
+        temporaryPath,
+        audioStreamIndex,
+      );
+
+      const stat =
+        await fs.promises.stat(
+          temporaryPath,
+        );
+
+      if (stat.size <= 0) {
+        throw new Error(
+          "Generated audio cache is empty",
+        );
+      }
+
+      /*
+       * Atomic replacement.
+       */
+      await fs.promises.rename(
+        temporaryPath,
+        outputPath,
+      );
+
+      console.log(
+        `[LumaVault] Audio cache created: ${outputPath}`,
+      );
+
+      return outputPath;
+    } catch (error) {
+      await fs.promises.rm(
+        temporaryPath,
+        {
+          force: true,
+        },
+      );
+
+      throw error;
+    }
+  })();
+
+  remuxJobs.set(
+    outputPath,
+    job,
+  );
+
+  try {
+    return await job;
+  } finally {
+    remuxJobs.delete(
+      outputPath,
+    );
+  }
 }
 
 export async function GET(
-  request: Request,
-  { params }: RouteContext,
+  request: NextRequest,
+  {
+    params,
+  }: {
+    params: Promise<{
+      episodeId: string;
+    }>;
+  },
 ) {
   try {
     const { episodeId } =
       await params;
 
-    const episode =
-      await prisma.episode.findUnique({
-        where: {
-          id: episodeId,
+    if (!episodeId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Episode ID is required",
         },
-        select: {
-          mediaSource: {
-            select: {
-              type: true,
-              filePath: true,
-              archivePath: true,
-              entryPath: true,
-            },
-          },
+        {
+          status: 400,
         },
-      });
+      );
+    }
 
-    if (!episode) {
-      return new NextResponse(
-        "Episode not found",
+    /*
+     * Resolve BOTH FILE and ARCHIVE sources.
+     *
+     * For ARCHIVE this gives us the persistent
+     * extracted media cache.
+     */
+    const filePath =
+      await getEpisodePlayableFile(
+        episodeId,
+      );
+
+    if (!filePath) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Episode media file not found",
+        },
         {
           status: 404,
         },
       );
     }
 
-    const mediaSource =
-      episode.mediaSource;
+    const audioParameter =
+      request.nextUrl.searchParams.get(
+        "audio",
+      );
 
-    if (!mediaSource) {
-      return new NextResponse(
-        "Media source not found",
+    /*
+     * --------------------------------------------------
+     * NORMAL PLAYBACK
+     * --------------------------------------------------
+     */
+    if (audioParameter === null) {
+      return serveFile(
+        request,
+        filePath,
+      );
+    }
+
+    /*
+     * --------------------------------------------------
+     * AUDIO SWITCHING
+     * --------------------------------------------------
+     */
+
+    const audioStreamIndex =
+      Number(audioParameter);
+
+    if (
+      !Number.isInteger(
+        audioStreamIndex,
+      ) ||
+      audioStreamIndex < 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Invalid audio stream index",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    /*
+     * Verify that the requested stream is
+     * actually an audio stream.
+     */
+    const tracks =
+      await probeMediaFile(
+        filePath,
+      );
+
+    const audioTrack =
+      tracks.audio.find(
+        (track) =>
+          track.streamIndex ===
+          audioStreamIndex,
+      );
+
+    if (!audioTrack) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            `Audio stream ${audioStreamIndex} was not found`,
+        },
         {
           status: 404,
         },
       );
     }
 
-    // --------------------------------------------------
-    // Normal filesystem video
-    // --------------------------------------------------
-
-    if (
-      mediaSource.type === "FILE"
-    ) {
-      if (!mediaSource.filePath) {
-        return new NextResponse(
-          "Media file path is missing",
-          {
-            status: 404,
-          },
-        );
-      }
-
-      return streamNormalFile(
-        mediaSource.filePath,
-        request,
-      );
-    }
-
-    // --------------------------------------------------
-    // ZIP archive video
-    // --------------------------------------------------
-
-    if (
-      mediaSource.type === "ARCHIVE"
-    ) {
-      if (
-        !mediaSource.archivePath ||
-        !mediaSource.entryPath
-      ) {
-        return new NextResponse(
-          "Archive media source is incomplete",
-          {
-            status: 404,
-          },
-        );
-      }
-
-      return await streamZipEntry(
-        mediaSource.archivePath,
-        mediaSource.entryPath,
-        request,
-      );
-    }
-
-    return new NextResponse(
-      "Unsupported media source type",
+    console.log(
+      "[LumaVault] Selected audio:",
       {
-        status: 400,
+        streamIndex:
+          audioTrack.streamIndex,
+        language:
+          audioTrack.language,
+        label:
+          audioTrack.label,
+        codec:
+          audioTrack.codec,
+        channels:
+          audioTrack.channels,
       },
+    );
+
+    const cachedPath =
+      await getAudioCache(
+        episodeId,
+        filePath,
+        audioStreamIndex,
+      );
+
+    return serveFile(
+      request,
+      cachedPath,
     );
   } catch (error) {
     console.error(
-      "GET /api/videos/[episodeId] error:",
+      "[LumaVault] Video route error:",
       error,
     );
 
-    return new NextResponse(
-      "Failed to stream video",
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to serve video",
+      },
       {
         status: 500,
       },
     );
   }
+}
+
+export async function HEAD(
+  request: NextRequest,
+  context: {
+    params: Promise<{
+      episodeId: string;
+    }>;
+  },
+) {
+  return GET(
+    request,
+    context,
+  );
 }
