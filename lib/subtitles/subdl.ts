@@ -1200,7 +1200,202 @@ async function extractSubtitleFromZip(
     "The subtitle archive contains no valid subtitle cues.",
   );
 }
+export async function searchEpisodeSubtitles(
+  tmdbId: number,
+  seasonNumber: number,
+  episodeNumber: number,
+  language: SubtitleLanguage,
+): Promise<SubDLSubtitle[]> {
+  if (!SUBDL_API_KEY) {
+    throw new Error(
+      "SUBDL_API_KEY is not configured.",
+    );
+  }
 
+  const requestedLanguage =
+    normalizeLanguage(language);
+
+  const params = new URLSearchParams({
+    api_key: SUBDL_API_KEY,
+    tmdb_id: String(tmdbId),
+    type: "tv",
+    season_number: String(seasonNumber),
+    episode_number: String(episodeNumber),
+    languages:
+      requestedLanguage === "si"
+        ? "SI"
+        : "EN",
+    subs_per_page: "30",
+    hi: "1",
+    unpack: "1",
+    client: "custom_integration",
+  });
+
+  console.log(
+    "[SubDL] Searching episode subtitles:",
+    {
+      tmdbId,
+      seasonNumber,
+      episodeNumber,
+      language: requestedLanguage,
+    },
+  );
+
+  const data = await subDLFetch(
+    `${SUBDL_API}?${params.toString()}`,
+  );
+
+  const results: SubDLSubtitle[] = [];
+
+  for (
+    const subtitle of data.subtitles ?? []
+  ) {
+    const unpackFiles =
+      subtitle.unpack_files ?? [];
+
+    /*
+     * unpack=1 gives individual
+     * subtitle-file URLs.
+     */
+    if (unpackFiles.length > 0) {
+      for (
+        const file of unpackFiles
+      ) {
+        if (!file.url) {
+          continue;
+        }
+
+        const languageCode =
+          normalizeLanguage(
+            file.language ??
+              subtitle.language ??
+              "",
+          );
+
+        if (
+          languageCode !==
+          requestedLanguage
+        ) {
+          continue;
+        }
+
+        const url =
+          toSubDLUrl(file.url);
+
+        results.push({
+          fileId:
+            file.file_n_id ??
+            createFileId(
+              url,
+              results.length,
+            ),
+
+          language:
+            file.language ??
+            subtitle.language ??
+            language,
+
+          languageCode,
+
+          release:
+            file.release_name ??
+            subtitle.release_name ??
+            null,
+
+          fileName:
+            file.name ??
+            subtitle.name ??
+            null,
+
+          hearingImpaired:
+            Boolean(
+              file.hi ??
+                subtitle.hi ??
+                false,
+            ),
+
+          downloads:
+            subtitle.download_count ??
+            subtitle.downloads ??
+            0,
+
+          url,
+
+          format:
+            file.format?.toLowerCase(),
+        });
+      }
+
+      continue;
+    }
+
+    /*
+     * Fallback for a normal subtitle entry.
+     */
+    if (!subtitle.url) {
+      continue;
+    }
+
+    const languageCode =
+      normalizeLanguage(
+        subtitle.language ?? "",
+      );
+
+    if (
+      languageCode !==
+      requestedLanguage
+    ) {
+      continue;
+    }
+
+    const url =
+      toSubDLUrl(
+        subtitle.url,
+      );
+
+    results.push({
+      fileId: createFileId(
+        url,
+        results.length,
+      ),
+
+      language:
+        subtitle.language ??
+        language,
+
+      languageCode,
+
+      release:
+        subtitle.release_name ??
+        null,
+
+      fileName:
+        subtitle.name ??
+        null,
+
+      hearingImpaired:
+        Boolean(subtitle.hi),
+
+      downloads:
+        subtitle.download_count ??
+        subtitle.downloads ??
+        0,
+
+      url,
+    });
+  }
+
+  console.log(
+    "[SubDL] Episode search results:",
+    results.length,
+  );
+
+  return results.sort(
+    (a, b) =>
+      b.downloads -
+      a.downloads,
+  );
+}
 /* -------------------------------------------------------------------------- */
 /* Download                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -1408,6 +1603,276 @@ export async function downloadMovieSubtitle(
     language,
     src: `/api/subtitles/movies/${movieId}/${language}`,
   };
+}
+
+function isSafeEpisodeId(
+  episodeId: string,
+): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(
+    episodeId,
+  );
+}
+
+function episodeSubtitleDirectory(
+  episodeId: string,
+): string {
+  return path.join(
+    process.cwd(),
+    "data",
+    "subtitles",
+    "episodes",
+    episodeId,
+  );
+}
+
+function episodeSubtitlePath(
+  episodeId: string,
+  language: SubtitleLanguage,
+): string {
+  return path.join(
+    episodeSubtitleDirectory(
+      episodeId,
+    ),
+    `${language}.vtt`,
+  );
+}
+
+export async function downloadEpisodeSubtitle(
+  episodeId: string,
+  fileUrl: string,
+  language: SubtitleLanguage,
+): Promise<{
+  language: SubtitleLanguage;
+  src: string;
+}> {
+  if (
+    !isSafeEpisodeId(episodeId)
+  ) {
+    throw new Error(
+      "Invalid episode ID.",
+    );
+  }
+
+  if (
+    !isValidLanguage(language)
+  ) {
+    throw new Error(
+      "Unsupported subtitle language.",
+    );
+  }
+
+  if (!fileUrl) {
+    throw new Error(
+      "Subtitle URL is required.",
+    );
+  }
+
+  const normalizedUrl =
+    toSubDLUrl(fileUrl);
+
+  /*
+   * Only allow the official SubDL
+   * download host.
+   */
+  if (
+    !normalizedUrl.startsWith(
+      `${SUBDL_DOWNLOAD_BASE}/`,
+    )
+  ) {
+    throw new Error(
+      "Invalid SubDL subtitle URL.",
+    );
+  }
+
+  console.log(
+    "[SubDL] Downloading episode subtitle:",
+    safeDownloadLogUrl(
+      normalizedUrl,
+    ),
+  );
+
+  const response =
+    await fetch(normalizedUrl, {
+      method: "GET",
+      cache: "no-store",
+    });
+
+  if (!response.ok) {
+    throw new Error(
+      `Subtitle download failed with HTTP ${response.status}`,
+    );
+  }
+
+  const contentType =
+    response.headers.get(
+      "content-type",
+    ) ?? "";
+
+  const data =
+    await response.arrayBuffer();
+
+  console.log(
+    "[SubDL] Episode subtitle download response:",
+    {
+      contentType,
+      bytes: data.byteLength,
+    },
+  );
+
+  if (
+    data.byteLength === 0
+  ) {
+    throw new Error(
+      "SubDL returned an empty subtitle file.",
+    );
+  }
+
+  let subtitleText: string;
+
+  if (
+    looksLikeZip(
+      contentType,
+      data,
+    )
+  ) {
+    subtitleText =
+      await extractSubtitleFromZip(
+        data,
+      );
+  } else {
+    subtitleText =
+      decodeSubtitle(data);
+
+    subtitleText =
+      normalizeSubtitleText(
+        subtitleText,
+      );
+
+    if (!subtitleText) {
+      throw new Error(
+        "Downloaded subtitle contains no text.",
+      );
+    }
+
+    const format =
+      detectSubtitleFormat(
+        subtitleText,
+      );
+
+    switch (format) {
+      case "vtt":
+        if (
+          !hasWebVttCues(
+            subtitleText,
+          )
+        ) {
+          throw new Error(
+            "Downloaded WebVTT contains no subtitle cues.",
+          );
+        }
+        break;
+
+      case "srt":
+        subtitleText =
+          srtToVtt(
+            subtitleText,
+          );
+        break;
+
+      case "ass":
+        subtitleText =
+          assToVtt(
+            subtitleText,
+          );
+        break;
+
+      default:
+        throw new Error(
+          "Unsupported or unrecognized subtitle format.",
+        );
+    }
+  }
+
+  const vtt =
+    normalizeSubtitleText(
+      subtitleText,
+    );
+
+  if (
+    !hasWebVttCues(vtt)
+  ) {
+    throw new Error(
+      "Converted subtitle contains no valid subtitle cues.",
+    );
+  }
+
+  const directory =
+    episodeSubtitleDirectory(
+      episodeId,
+    );
+
+  await fs.mkdir(
+    directory,
+    {
+      recursive: true,
+    },
+  );
+
+  const outputPath =
+    episodeSubtitlePath(
+      episodeId,
+      language,
+    );
+
+  await fs.writeFile(
+    outputPath,
+    `${vtt}\n`,
+    "utf8",
+  );
+
+  console.log(
+    "[SubDL] Episode subtitle saved:",
+    outputPath,
+  );
+
+  return {
+    language,
+    src: `/api/subtitles/episodes/${episodeId}/${language}`,
+  };
+}
+
+
+export async function getCachedEpisodeSubtitle(
+  episodeId: string,
+  language: SubtitleLanguage,
+): Promise<string | null> {
+  if (
+    !isSafeEpisodeId(episodeId)
+  ) {
+    throw new Error(
+      "Invalid episode ID.",
+    );
+  }
+
+  if (
+    !isValidLanguage(language)
+  ) {
+    throw new Error(
+      "Unsupported subtitle language.",
+    );
+  }
+
+  try {
+    return await fs.readFile(
+      episodeSubtitlePath(
+        episodeId,
+        language,
+      ),
+      "utf8",
+    );
+  } catch {
+    return null;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
