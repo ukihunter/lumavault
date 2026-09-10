@@ -1,5 +1,5 @@
-
 import { NextRequest, NextResponse } from "next/server";
+
 import fs from "node:fs";
 import path from "node:path";
 import { Readable, Transform } from "node:stream";
@@ -19,10 +19,12 @@ type ByteRange = {
   end: number;
 };
 
+/* -------------------------------------------------------------------------- */
+/* MIME type                                                                  */
+/* -------------------------------------------------------------------------- */
+
 function getMimeType(fileName: string): string {
-  const extension = path
-    .extname(fileName)
-    .toLowerCase();
+  const extension = path.extname(fileName).toLowerCase();
 
   switch (extension) {
     case ".mp4":
@@ -48,8 +50,6 @@ function getMimeType(fileName: string): string {
       return "video/x-flv";
 
     case ".ts":
-      return "video/mp2t";
-
     case ".m2ts":
       return "video/mp2t";
 
@@ -57,6 +57,10 @@ function getMimeType(fileName: string): string {
       return "application/octet-stream";
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Range parsing                                                              */
+/* -------------------------------------------------------------------------- */
 
 function parseRange(
   rangeHeader: string | null,
@@ -66,10 +70,7 @@ function parseRange(
     return null;
   }
 
-  const match =
-    /^bytes=(\d*)-(\d*)$/.exec(
-      rangeHeader.trim(),
-    );
+  const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
 
   if (!match) {
     return null;
@@ -81,48 +82,60 @@ function parseRange(
   let start: number;
   let end: number;
 
+  /*
+   * Suffix range:
+   *
+   * bytes=-500
+   *
+   * Means the last 500 bytes.
+   */
   if (startText === "") {
     const suffixLength = Number(endText);
 
     if (
-      !Number.isFinite(suffixLength) ||
+      !Number.isSafeInteger(suffixLength) ||
       suffixLength <= 0
     ) {
       return null;
     }
 
-    start = Math.max(
-      size - suffixLength,
-      0,
-    );
-
+    start = Math.max(size - suffixLength, 0);
     end = size - 1;
   } else {
     start = Number(startText);
 
-    if (!Number.isFinite(start) || start < 0) {
-      return null;
-    }
-
-    end =
-      endText === ""
-        ? size - 1
-        : Number(endText);
-
     if (
-      !Number.isFinite(end) ||
-      end < start
+      !Number.isSafeInteger(start) ||
+      start < 0
     ) {
       return null;
     }
 
-    end = Math.min(
-      end,
-      size - 1,
-    );
+    /*
+     * Open-ended range:
+     *
+     * bytes=500-
+     */
+    if (endText === "") {
+      end = size - 1;
+    } else {
+      end = Number(endText);
+
+      if (
+        !Number.isSafeInteger(end) ||
+        end < start
+      ) {
+        return null;
+      }
+
+      end = Math.min(end, size - 1);
+    }
   }
 
-  if (start >= size) {
+  if (
+    start >= size ||
+    start > end
+  ) {
     return null;
   }
 
@@ -132,125 +145,148 @@ function parseRange(
   };
 }
 
+/* -------------------------------------------------------------------------- */
+/* ZIP helpers                                                                */
+/* -------------------------------------------------------------------------- */
+
 function openZip(
   archivePath: string,
 ): Promise<yauzl.ZipFile> {
-  return new Promise(
-    (resolve, reject) => {
-      yauzl.open(
-        archivePath,
-        {
-          lazyEntries: true,
-          autoClose: false,
-        },
-        (error, zipFile) => {
-          if (error || !zipFile) {
-            reject(
-              error ??
-                new Error(
-                  "Failed to open archive",
-                ),
-            );
+  return new Promise((resolve, reject) => {
+    yauzl.open(
+      archivePath,
+      {
+        lazyEntries: true,
+        autoClose: false,
+      },
+      (error, zipFile) => {
+        if (error || !zipFile) {
+          reject(
+            error ??
+              new Error("Failed to open archive"),
+          );
+          return;
+        }
 
-            return;
-          }
-
-          resolve(zipFile);
-        },
-      );
-    },
-  );
+        resolve(zipFile);
+      },
+    );
+  });
 }
 
-function findZipEntry(
+async function findZipEntry(
   archivePath: string,
   entryPath: string,
 ): Promise<{
   zipFile: yauzl.ZipFile;
   entry: yauzl.Entry;
 }> {
-  return new Promise(
-    async (resolve, reject) => {
-      let zipFile:
-        | yauzl.ZipFile
-        | null = null;
+  const zipFile = await openZip(archivePath);
+
+  return new Promise((resolve, reject) => {
+    let finished = false;
+
+    const cleanup = () => {
+      zipFile.removeAllListeners("entry");
+      zipFile.removeAllListeners("error");
+      zipFile.removeAllListeners("end");
+    };
+
+    zipFile.on("entry", (entry) => {
+      if (finished) {
+        return;
+      }
+
+      if (entry.fileName === entryPath) {
+        finished = true;
+
+        cleanup();
+
+        resolve({
+          zipFile,
+          entry,
+        });
+
+        return;
+      }
+
+      zipFile.readEntry();
+    });
+
+    zipFile.on("error", (error) => {
+      if (finished) {
+        return;
+      }
+
+      finished = true;
+
+      cleanup();
 
       try {
-        zipFile =
-          await openZip(
-            archivePath,
-          );
-
-        let found = false;
-
-        zipFile.readEntry();
-
-        zipFile.on(
-          "entry",
-          (entry) => {
-            if (found) {
-              return;
-            }
-
-            if (
-              entry.fileName ===
-              entryPath
-            ) {
-              found = true;
-
-              resolve({
-                zipFile,
-                entry,
-              });
-
-              return;
-            }
-
-            zipFile.readEntry();
-          },
-        );
-
-        zipFile.on(
-          "error",
-          (error) => {
-            if (!found) {
-              reject(error);
-            }
-          },
-        );
-
-        zipFile.on(
-          "end",
-          () => {
-            if (!found) {
-              reject(
-                new Error(
-                  `Archive entry not found: ${entryPath}`,
-                ),
-              );
-            }
-          },
-        );
-      } catch (error) {
-        if (zipFile) {
-          try {
-            zipFile.close();
-          } catch {
-            // Ignore.
-          }
-        }
-
-        reject(error);
+        zipFile.close();
+      } catch {
+        // Ignore cleanup errors.
       }
-    },
-  );
+
+      reject(error);
+    });
+
+    zipFile.on("end", () => {
+      if (finished) {
+        return;
+      }
+
+      finished = true;
+
+      cleanup();
+
+      try {
+        zipFile.close();
+      } catch {
+        // Ignore cleanup errors.
+      }
+
+      reject(
+        new Error(
+          `Archive entry not found: ${entryPath}`,
+        ),
+      );
+    });
+
+    zipFile.readEntry();
+  });
 }
 
+/* -------------------------------------------------------------------------- */
+/* ZIP stream                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Creates a stream for an uncompressed byte range inside a ZIP entry.
+ *
+ * IMPORTANT:
+ *
+ * HTTP byte ranges refer to the UNCOMPRESSED video file.
+ *
+ * We therefore cannot pass HTTP start/end directly into yauzl for
+ * compressed ZIP entries.
+ *
+ * Instead:
+ *
+ *   1. Open the ZIP entry normally.
+ *   2. yauzl decompresses the entry as a stream.
+ *   3. Skip `start` bytes.
+ *   4. Return exactly `end - start + 1` bytes.
+ *   5. Destroy the source stream once the requested range is complete.
+ *
+ * This keeps memory usage low and makes the HTTP response correct.
+ */
 async function createZipStream(
   archivePath: string,
   entryPath: string,
   start: number,
-) {
+  end: number,
+): Promise<Readable> {
   const {
     zipFile,
     entry,
@@ -259,105 +295,230 @@ async function createZipStream(
     entryPath,
   );
 
-  const stream =
-    await new Promise<
-      NodeJS.ReadableStream
-    >((resolve, reject) => {
-      zipFile.openReadStream(
-        entry,
-        (error, readStream) => {
-          if (error || !readStream) {
-            try {
-              zipFile.close();
-            } catch {
-              // Ignore.
+  const requestedLength =
+    end - start + 1;
+
+  let sourceStream: NodeJS.ReadableStream | null =
+    null;
+
+  let cleanedUp = false;
+
+  const cleanup = () => {
+    if (cleanedUp) {
+      return;
+    }
+
+    cleanedUp = true;
+
+    try {
+      if (
+        sourceStream &&
+        "destroy" in sourceStream &&
+        typeof sourceStream.destroy === "function"
+      ) {
+        sourceStream.destroy();
+      }
+    } catch {
+      // Ignore cleanup errors.
+    }
+
+    try {
+      zipFile.close();
+    } catch {
+      // Ignore cleanup errors.
+    }
+  };
+
+  try {
+    sourceStream = await new Promise<NodeJS.ReadableStream>(
+      (resolve, reject) => {
+        zipFile.openReadStream(
+          entry,
+          (error, readStream) => {
+            if (error || !readStream) {
+              reject(
+                error ??
+                  new Error(
+                    "Failed to open ZIP entry stream",
+                  ),
+              );
+
+              return;
             }
 
-            reject(
-              error ??
-                new Error(
-                  "Failed to open ZIP stream",
-                ),
-            );
+            resolve(readStream);
+          },
+        );
+      },
+    );
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
 
-            return;
-          }
+  let bytesToSkip = start;
+  let bytesToSend = requestedLength;
+  let rangeFinished = false;
 
-          resolve(readStream);
-        },
-      );
-    });
-
-  let remaining = start;
-
-  const skipTransform =
-    new Transform({
-      transform(
-        chunk,
-        _encoding,
-        callback,
-      ) {
-        if (remaining <= 0) {
-          callback(
-            null,
-            chunk,
-          );
-
-          return;
-        }
-
-        const buffer =
-          Buffer.isBuffer(chunk)
-            ? chunk
-            : Buffer.from(chunk);
-
-        if (
-          buffer.length <=
-          remaining
-        ) {
-          remaining -=
-            buffer.length;
-
+  const limitedStream = new Transform({
+    transform(chunk, _encoding, callback) {
+      try {
+        if (rangeFinished) {
           callback();
           return;
         }
 
-        const output =
-          buffer.subarray(
-            remaining,
-          );
+        let buffer: Buffer;
 
-        remaining = 0;
-
-        callback(
-          null,
-          output,
-        );
-      },
-
-      flush(callback) {
-        try {
-          zipFile.close();
-        } catch {
-          // Ignore.
+        if (Buffer.isBuffer(chunk)) {
+          buffer = chunk;
+        } else if (chunk instanceof Uint8Array) {
+          buffer = Buffer.from(chunk);
+        } else {
+          buffer = Buffer.from(String(chunk));
         }
 
-        callback();
-      },
-    });
+        /*
+         * First discard bytes until we reach the requested
+         * uncompressed starting position.
+         */
+        if (bytesToSkip > 0) {
+          const skipAmount = Math.min(
+            bytesToSkip,
+            buffer.length,
+          );
 
-  return Readable
-    .from(stream as AsyncIterable<Buffer>)
-    .pipe(skipTransform);
+          bytesToSkip -= skipAmount;
+
+          buffer = buffer.subarray(skipAmount);
+        }
+
+        /*
+         * Nothing remains from this chunk after skipping.
+         */
+        if (
+          buffer.length === 0 ||
+          bytesToSend <= 0
+        ) {
+          callback();
+          return;
+        }
+
+        /*
+         * Only return the exact number of bytes requested.
+         */
+        const outputLength = Math.min(
+          bytesToSend,
+          buffer.length,
+        );
+
+        const output =
+          buffer.subarray(
+            0,
+            outputLength,
+          );
+
+        bytesToSend -= outputLength;
+
+        /*
+         * This is the final requested chunk.
+         */
+        if (bytesToSend === 0) {
+          rangeFinished = true;
+
+          /*
+           * We must call callback with the final data first.
+           *
+           * Then destroy the source stream on the next
+           * turn so the final chunk is not lost.
+           */
+          callback(null, output);
+
+          setImmediate(() => {
+            cleanup();
+          });
+
+          return;
+        }
+
+        callback(null, output);
+      } catch (error) {
+        callback(
+          error instanceof Error
+            ? error
+            : new Error(
+                "Failed to process ZIP stream",
+              ),
+        );
+      }
+    },
+
+    flush(callback) {
+      cleanup();
+      callback();
+    },
+  });
+
+  /*
+   * Propagate source errors to the HTTP stream.
+   */
+  sourceStream.on(
+    "error",
+    (error) => {
+      if (!rangeFinished) {
+        limitedStream.destroy(error);
+      } else {
+        cleanup();
+      }
+    },
+  );
+
+  /*
+   * If the source naturally ends before the requested
+   * range has been completely delivered, close everything.
+   */
+  sourceStream.on(
+    "end",
+    () => {
+      cleanup();
+    },
+  );
+
+  /*
+   * If the transform is destroyed for any reason,
+   * make sure the ZIP file is also closed.
+   */
+  limitedStream.on(
+    "close",
+    () => {
+      cleanup();
+    },
+  );
+
+  limitedStream.on(
+    "error",
+    () => {
+      cleanup();
+    },
+  );
+
+  sourceStream.pipe(limitedStream);
+
+  return limitedStream;
 }
+
+/* -------------------------------------------------------------------------- */
+/* GET                                                                        */
+/* -------------------------------------------------------------------------- */
 
 export async function GET(
   request: NextRequest,
   { params }: RouteContext,
 ) {
   try {
-    const { movieId } =
-      await params;
+    const {
+      movieId,
+    } = await params;
 
     const movie =
       await prisma.movie.findUnique({
@@ -381,33 +542,47 @@ export async function GET(
         },
       });
 
+    /* ---------------------------------------------------------------------- */
+    /* Movie not found                                                        */
+    /* ---------------------------------------------------------------------- */
+
     if (!movie) {
       return NextResponse.json(
         {
           success: false,
           error: "Movie not found",
         },
-        { status: 404 },
+        {
+          status: 404,
+        },
       );
     }
+
+    /* ---------------------------------------------------------------------- */
+    /* No media source                                                        */
+    /* ---------------------------------------------------------------------- */
 
     if (!movie.mediaSource) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Movie has no media source",
+          error: "Movie has no media source",
         },
-        { status: 404 },
+        {
+          status: 404,
+        },
       );
     }
 
     const source =
       movie.mediaSource;
 
-    /* ---------------------------------------------------------------------- */
-    /* Normal file                                                             */
-    /* ---------------------------------------------------------------------- */
+    const rangeHeader =
+      request.headers.get("range");
+
+    /* ====================================================================== */
+    /* NORMAL FILE                                                            */
+    /* ====================================================================== */
 
     if (
       source.type === "FILE" &&
@@ -421,10 +596,11 @@ export async function GET(
         return NextResponse.json(
           {
             success: false,
-            error:
-              "Movie file not found",
+            error: "Movie file not found",
           },
-          { status: 404 },
+          {
+            status: 404,
+          },
         );
       }
 
@@ -443,30 +619,37 @@ export async function GET(
 
       const range =
         parseRange(
-          request.headers.get(
-            "range",
-          ),
+          rangeHeader,
           size,
         );
 
+      /* -------------------------------------------------------------------- */
+      /* Invalid range                                                        */
+      /* -------------------------------------------------------------------- */
+
       if (
-        request.headers.has(
-          "range",
-        ) &&
+        rangeHeader &&
         !range
       ) {
         return new NextResponse(
           null,
           {
             status: 416,
+
             headers: {
-              "Content-Range": `bytes */${size}`,
+              "Content-Range":
+                `bytes */${size}`,
+
               "Accept-Ranges":
                 "bytes",
             },
           },
         );
       }
+
+      /* -------------------------------------------------------------------- */
+      /* No range                                                             */
+      /* -------------------------------------------------------------------- */
 
       if (!range) {
         const stream =
@@ -493,10 +676,17 @@ export async function GET(
 
               "Cache-Control":
                 "no-store",
+
+              "Content-Disposition":
+                "inline",
             },
           },
         );
       }
+
+      /* -------------------------------------------------------------------- */
+      /* Range                                                                */
+      /* -------------------------------------------------------------------- */
 
       const {
         start,
@@ -527,9 +717,7 @@ export async function GET(
               mimeType,
 
             "Content-Length":
-              String(
-                contentLength,
-              ),
+              String(contentLength),
 
             "Content-Range":
               `bytes ${start}-${end}/${size}`,
@@ -539,14 +727,17 @@ export async function GET(
 
             "Cache-Control":
               "no-store",
+
+            "Content-Disposition":
+              "inline",
           },
         },
       );
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* ZIP archive                                                             */
-    /* ---------------------------------------------------------------------- */
+    /* ====================================================================== */
+    /* ZIP ARCHIVE                                                            */
+    /* ====================================================================== */
 
     if (
       source.type === "ARCHIVE" &&
@@ -561,20 +752,26 @@ export async function GET(
         return NextResponse.json(
           {
             success: false,
-            error:
-              "Movie archive not found",
+            error: "Movie archive not found",
           },
-          { status: 404 },
+          {
+            status: 404,
+          },
         );
       }
 
+      /*
+       * Find the ZIP entry only to obtain its metadata,
+       * especially the uncompressed video size.
+       */
       const {
         zipFile,
         entry,
-      } = await findZipEntry(
-        source.archivePath,
-        source.entryPath,
-      );
+      } =
+        await findZipEntry(
+          source.archivePath,
+          source.entryPath,
+        );
 
       const size =
         entry.uncompressedSize;
@@ -584,32 +781,38 @@ export async function GET(
           source.entryPath,
         );
 
-      const range =
-        parseRange(
-          request.headers.get(
-            "range",
-          ),
-          size,
-        );
-
+      /*
+       * We only needed this ZIP handle for metadata.
+       */
       try {
         zipFile.close();
       } catch {
-        // Ignore.
+        // Ignore cleanup errors.
       }
 
+      const range =
+        parseRange(
+          rangeHeader,
+          size,
+        );
+
+      /* -------------------------------------------------------------------- */
+      /* Invalid range                                                        */
+      /* -------------------------------------------------------------------- */
+
       if (
-        request.headers.has(
-          "range",
-        ) &&
+        rangeHeader &&
         !range
       ) {
         return new NextResponse(
           null,
           {
             status: 416,
+
             headers: {
-              "Content-Range": `bytes */${size}`,
+              "Content-Range":
+                `bytes */${size}`,
+
               "Accept-Ranges":
                 "bytes",
             },
@@ -617,12 +820,17 @@ export async function GET(
         );
       }
 
+      /* -------------------------------------------------------------------- */
+      /* No range                                                             */
+      /* -------------------------------------------------------------------- */
+
       if (!range) {
         const stream =
           await createZipStream(
             source.archivePath,
             source.entryPath,
             0,
+            size - 1,
           );
 
         return new NextResponse(
@@ -644,10 +852,17 @@ export async function GET(
 
               "Cache-Control":
                 "no-store",
+
+              "Content-Disposition":
+                "inline",
             },
           },
         );
       }
+
+      /* -------------------------------------------------------------------- */
+      /* Range                                                                */
+      /* -------------------------------------------------------------------- */
 
       const {
         start,
@@ -657,11 +872,23 @@ export async function GET(
       const contentLength =
         end - start + 1;
 
+      /*
+       * IMPORTANT:
+       *
+       * Do NOT pass start/end directly to yauzl.
+       *
+       * For compressed ZIP entries, those values are not
+       * uncompressed HTTP byte offsets.
+       *
+       * createZipStream() handles the range by streaming
+       * decompressed data and limiting the output.
+       */
       const stream =
         await createZipStream(
           source.archivePath,
           source.entryPath,
           start,
+          end,
         );
 
       return new NextResponse(
@@ -676,9 +903,7 @@ export async function GET(
               mimeType,
 
             "Content-Length":
-              String(
-                contentLength,
-              ),
+              String(contentLength),
 
             "Content-Range":
               `bytes ${start}-${end}/${size}`,
@@ -688,10 +913,17 @@ export async function GET(
 
             "Cache-Control":
               "no-store",
+
+            "Content-Disposition":
+              "inline",
           },
         },
       );
     }
+
+    /* ====================================================================== */
+    /* UNSUPPORTED                                                            */
+    /* ====================================================================== */
 
     return NextResponse.json(
       {
@@ -699,7 +931,9 @@ export async function GET(
         error:
           "Unsupported movie media source",
       },
-      { status: 400 },
+      {
+        status: 400,
+      },
     );
   } catch (error) {
     console.error(
@@ -710,13 +944,15 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
+
         error:
           error instanceof Error
             ? error.message
             : "Failed to stream movie",
       },
-      { status: 500 },
+      {
+        status: 500,
+      },
     );
   }
 }
-

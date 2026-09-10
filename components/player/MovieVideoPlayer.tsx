@@ -512,29 +512,52 @@ export function MovieVideoPlayer({
     };
   }, []);
 
-  const togglePlay = async () => {
-    const video =
-      videoRef.current;
+ const togglePlay = async () => {
+  const video = videoRef.current;
 
-    if (!video) {
+  if (!video) {
+    return;
+  }
+
+  try {
+    if (video.paused || video.ended) {
+      // Reset ended video before replaying.
+      if (video.ended) {
+        video.currentTime = 0;
+      }
+
+      const playPromise = video.play();
+
+      // Some browsers return undefined here.
+      if (playPromise !== undefined) {
+        await playPromise;
+      }
+    } else {
+      video.pause();
+    }
+
+    showControlsTemporarily();
+  } catch (error) {
+    /*
+     * AbortError is normally caused by another
+     * play/pause operation interrupting this one.
+     *
+     * It is not a real playback failure, so don't
+     * spam the console with it.
+     */
+    if (
+      error instanceof DOMException &&
+      error.name === "AbortError"
+    ) {
       return;
     }
 
-    try {
-      if (video.paused) {
-        await video.play();
-      } else {
-        video.pause();
-      }
-
-      showControlsTemporarily();
-    } catch (error) {
-      console.error(
-        "Unable to toggle playback:",
-        error,
-      );
-    }
-  };
+    console.error(
+      "Unable to toggle playback:",
+      error,
+    );
+  }
+};
 
   const seek = (
     seconds: number,
@@ -1198,10 +1221,10 @@ export function MovieVideoPlayer({
         onDoubleClick={
           toggleFullscreen
         }
-        onClick={(event) => {
-          event.stopPropagation();
-          togglePlay();
-        }}
+      onClick={(event) => {
+  event.stopPropagation();
+  void togglePlay();
+}}
       >
         {subtitleTracks.map(
           (subtitle) => (
@@ -1279,10 +1302,10 @@ export function MovieVideoPlayer({
       {!playing && (
         <button
           type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            togglePlay();
-          }}
+        onClick={(event) => {
+  event.stopPropagation();
+  void togglePlay();
+}}
           aria-label="Play movie"
           className="
             absolute
@@ -1664,10 +1687,10 @@ export function MovieVideoPlayer({
 
           <button
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              togglePlay();
-            }}
+          onClick={(event) => {
+  event.stopPropagation();
+  void togglePlay();
+}}
             aria-label={
               playing
                 ? "Pause"
