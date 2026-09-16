@@ -188,7 +188,7 @@ export default async function WatchPage({
       {/* Player                                             */}
       {/* -------------------------------------------------- */}
 
-      <section className="mx-auto w-full max-w-[1600px]">
+      <section className="mx-auto  w-full max-w-[1600px] mt-16">
         <VideoPlayer
           episodeId={episode.id}
           title={episode.title}
