@@ -3,16 +3,16 @@ import { prisma } from "@/lib/db/prisma";
 
 import { collectFilesystemMedia } from "./filesystem-scanner";
 import { collectArchiveMedia } from "./archive-scanner";
-
 import {
   cleanMovieTitle,
   getMovieYear,
   parseEpisode,
   parseSeriesTitle,
 } from "./parser";
-
 import type { ScanMedia } from "./types";
-
+import {
+  syncSeriesMetadata,
+} from "@/lib/metadata/sync";
 export type ScanResult = {
   libraryId: string;
   libraryName: string;
@@ -26,26 +26,6 @@ export type ScanResult = {
   errorDetails: string[];
 };
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Extract the year that identifies a TV series.
- *
- * For archive-based media, the archive filename is the important source:
- *
- *   Ben 10 (2005).zip
- *   Ben 10 (2016).zip
- *
- * becomes:
- *
- *   2005
- *   2016
- *
- * We deliberately inspect the archive path first because episode filenames
- * often do not contain the series year.
- */
 function getSeriesYear(
   media: ScanMedia,
 ): number | null {
@@ -70,15 +50,6 @@ function getSeriesYear(
       continue;
     }
 
-    /**
-     * Look specifically for a 4-digit year.
-     *
-     * Supports:
-     *   (2005)
-     *   [2005]
-     *   2005
-     *   Ben 10 (2005).zip
-     */
     const match = value.match(
       /\b((?:19|20)\d{2})\b/,
     );
@@ -98,15 +69,9 @@ function getSeriesYear(
     }
   }
 
-  /**
-   * Final fallback to the existing parser helper.
-   */
   return getMovieYear(media.filename);
 }
 
-/**
- * Build a readable identifier for a series.
- */
 function getSeriesDisplayName(
   title: string,
   year: number | null,
@@ -115,10 +80,6 @@ function getSeriesDisplayName(
     ? `${title} (${year})`
     : title;
 }
-
-/* -------------------------------------------------------------------------- */
-/* Main scanner                                                               */
-/* -------------------------------------------------------------------------- */
 
 export async function scanLibrary(
   libraryId: string,
@@ -134,20 +95,12 @@ export async function scanLibrary(
     throw new Error("Library not found");
   }
 
-  /**
-   * Discover normal video files.
-   */
   const filesystemMedia =
     await collectFilesystemMedia(
       library.path,
       library.path,
     );
 
-  /**
-   * Discover video files inside ZIP archives.
-   *
-   * Nothing is extracted here.
-   */
   const archiveMedia =
     await collectArchiveMedia(
       library.path,
@@ -173,46 +126,39 @@ export async function scanLibrary(
     errors: 0,
     errorDetails: [],
   };
-
+const touchedSeriesIds = new Set<string>();
   for (const item of media) {
     try {
-      /**
-       * Movies-only library.
-       */
       if (library.type === "MOVIES") {
         await scanMovie(
           library.id,
           item,
           result,
         );
-
         continue;
       }
 
-      /**
-       * Series-only library.
-       */
       if (library.type === "SERIES") {
         await scanEpisode(
           library.id,
           item,
           result,
+          touchedSeriesIds,
         );
-
         continue;
       }
 
-      /**
-       * Mixed library.
-       *
-       * Automatically determine whether this
-       * media item is an episode or movie.
-       */
-      if (parseEpisode(item.filename)) {
+      if (
+        parseEpisode(
+          item.filename,
+          item.relativePath,
+        )
+      ) {
         await scanEpisode(
           library.id,
           item,
           result,
+           touchedSeriesIds,
         );
       } else {
         await scanMovie(
@@ -234,16 +180,65 @@ export async function scanLibrary(
     }
   }
 
+  if (touchedSeriesIds.size > 0) {
+    console.log(
+      `[LumaVault] Syncing metadata for ${touchedSeriesIds.size} series...`,
+    );
+
+    for (const seriesId of touchedSeriesIds) {
+      try {
+        const metadataResult =
+          await syncSeriesMetadata(
+            seriesId,
+            {
+              force: false,
+              syncEpisodes: true,
+            },
+          );
+
+        console.log(
+          "[LumaVault] Series metadata sync completed:",
+          {
+            seriesId,
+            matched:
+              metadataResult.series.matched,
+            skipped:
+              metadataResult.series.skipped,
+            failed:
+              metadataResult.series.failed,
+            episodes:
+              metadataResult.episodes.total,
+            episodeMatched:
+              metadataResult.episodes.matched,
+            episodeSkipped:
+              metadataResult.episodes.skipped,
+            episodeFailed:
+              metadataResult.episodes.failed,
+          },
+        );
+
+        if (
+          metadataResult.errors.length > 0
+        ) {
+          console.warn(
+            "[LumaVault] Metadata sync warnings:",
+            metadataResult.errors,
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[LumaVault] Failed to sync metadata for series ${seriesId}:`,
+          error,
+        );
+      }
+    }
+  }
+
+
+
   return result;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Movie                                                                      */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Scan a movie media source.
- */
 async function scanMovie(
   libraryId: string,
   media: ScanMedia,
@@ -257,25 +252,14 @@ async function scanMovie(
     media.filename,
   );
 
-  /**
-   * Find existing source using the
-   * physical source identity.
-   */
   const existingSource =
     await findExistingSource(media);
 
-  /**
-   * Existing source already belongs
-   * to a movie.
-   *
-   * This is a normal rescan/update.
-   */
   if (existingSource?.movie) {
     await prisma.movie.update({
       where: {
         id: existingSource.movie.id,
       },
-
       data: {
         title,
         year,
@@ -289,29 +273,20 @@ async function scanMovie(
     );
 
     result.updated++;
-
     return;
   }
 
-  /**
-   * A source exists but does not belong
-   * to a movie.
-   */
   if (existingSource) {
     throw new Error(
       "Media source exists but is already attached to another media item.",
     );
   }
 
-  /**
-   * Create movie and MediaSource together.
-   */
   await prisma.movie.create({
     data: {
       title,
       year,
       libraryId,
-
       mediaSource: {
         create:
           createMediaSourceData(media),
@@ -322,38 +297,17 @@ async function scanMovie(
   result.added++;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Episode                                                                    */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Scan a TV episode.
- *
- * Example:
- *
- *   S04E05E06E07.mp4
- *
- * becomes:
- *
- *   Season 4 / Episode 5
- *
- * We intentionally do not create E06/E07.
- */
 async function scanEpisode(
   libraryId: string,
   media: ScanMedia,
   result: ScanResult,
+   touchedSeriesIds: Set<string>,
 ) {
-  /**
-   * Parse SxxExx from filename.
-   */
   const episodeInfo = parseEpisode(
     media.filename,
+    media.relativePath,
   );
 
-  /**
-   * No SxxExx pattern.
-   */
   if (!episodeInfo) {
     result.skipped++;
 
@@ -362,24 +316,19 @@ async function scanEpisode(
         "NO_EPISODE_PATTERN",
         getMediaDisplayPath(media),
         `filename="${media.filename}"`,
+        `relativePath="${media.relativePath}"`,
       ].join(" | "),
     );
 
     return;
   }
 
-  /**
-   * Determine series title.
-   */
   const seriesTitle =
     parseSeriesTitle(
       media.relativePath,
       media.filename,
     );
 
-  /**
-   * Could not determine series.
-   */
   if (!seriesTitle) {
     result.skipped++;
 
@@ -395,47 +344,26 @@ async function scanEpisode(
     return;
   }
 
-  /**
-   * Determine series year.
-   *
-   * This is the key change for cases such as:
-   *
-   *   Ben 10 (2005).zip
-   *   Ben 10 (2016).zip
-   */
   const seriesYear =
     getSeriesYear(media);
 
-  /**
-   * Helpful diagnostic logging.
-   */
   console.log(
-    "[LumaVault] Series identity:",
+    "[LumaVault] Episode parsed:",
     {
-      title: seriesTitle,
-      year: seriesYear,
+      filename: media.filename,
+      relativePath: media.relativePath,
+      season: episodeInfo.season,
+      episode: episodeInfo.episode,
+      seriesTitle,
+      seriesYear,
       source:
         getMediaDisplayPath(media),
     },
   );
 
-  /**
-   * IMPORTANT:
-   *
-   * Check the physical source first.
-   *
-   * This makes rescanning safe and prevents
-   * unnecessary Series/Season creation.
-   */
   const existingSource =
     await findExistingSource(media);
 
-  /**
-   * Existing physical source already belongs
-   * to an episode.
-   *
-   * This is a normal rescan/update.
-   */
   if (existingSource?.episode) {
     const episode =
       existingSource.episode;
@@ -444,7 +372,6 @@ async function scanEpisode(
       where: {
         id: episode.id,
       },
-
       data: {
         title: `Episode ${episodeInfo.episode}`,
         number: episodeInfo.episode,
@@ -457,42 +384,15 @@ async function scanEpisode(
     );
 
     result.updated++;
-
     return;
   }
 
-  /**
-   * The physical source exists but belongs
-   * to another media type.
-   */
   if (existingSource) {
     throw new Error(
       "Media source exists but is already attached to another media item.",
     );
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* Find or create series                                                  */
-  /* ---------------------------------------------------------------------- */
-
-  /**
-   * IMPORTANT:
-   *
-   * Series identity is:
-   *
-   *   libraryId + title + year
-   *
-   * NOT:
-   *
-   *   libraryId + title
-   *
-   * This allows:
-   *
-   *   Ben 10 (2005)
-   *   Ben 10 (2016)
-   *
-   * to become two different Series records.
-   */
   let series =
     await prisma.series.findFirst({
       where: {
@@ -521,11 +421,6 @@ async function scanEpisode(
       },
     );
   } else {
-    /**
-     * If the existing Series was created previously
-     * without a year and we can now determine it,
-     * repair the missing year during rescan.
-     */
     if (
       series.year === null &&
       seriesYear !== null
@@ -535,7 +430,6 @@ async function scanEpisode(
           where: {
             id: series.id,
           },
-
           data: {
             year: seriesYear,
           },
@@ -551,11 +445,7 @@ async function scanEpisode(
       );
     }
   }
-
-  /* ---------------------------------------------------------------------- */
-  /* Find or create season                                                   */
-  /* ---------------------------------------------------------------------- */
-
+touchedSeriesIds.add(series.id);
   let season =
     await prisma.season.findUnique({
       where: {
@@ -576,26 +466,6 @@ async function scanEpisode(
       });
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* Check logical episode                                                   */
-  /* ---------------------------------------------------------------------- */
-
-  /**
-   * Check whether this logical episode
-   * already exists.
-   *
-   * Example:
-   *
-   * S04E05.mp4
-   * S04E05E06E07.mp4
-   *
-   * Both resolve to:
-   *
-   * Season 4 / Episode 5
-   *
-   * Option A means we keep only the first
-   * logical episode source.
-   */
   const existingEpisode =
     await prisma.episode.findUnique({
       where: {
@@ -604,7 +474,6 @@ async function scanEpisode(
           number: episodeInfo.episode,
         },
       },
-
       include: {
         mediaSource: true,
       },
@@ -646,18 +515,11 @@ async function scanEpisode(
     return;
   }
 
-  /* ---------------------------------------------------------------------- */
-  /* Create episode                                                          */
-  /* ---------------------------------------------------------------------- */
-
   await prisma.episode.create({
     data: {
       number: episodeInfo.episode,
-
       title: `Episode ${episodeInfo.episode}`,
-
       seasonId: season.id,
-
       mediaSource: {
         create:
           createMediaSourceData(media),
@@ -668,20 +530,9 @@ async function scanEpisode(
   result.added++;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Existing MediaSource lookup                                                */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Find an existing MediaSource using
- * the correct identity for its source type.
- */
 async function findExistingSource(
   media: ScanMedia,
 ) {
-  /**
-   * Normal filesystem file.
-   */
   if (media.sourceType === "FILE") {
     if (!media.filePath) {
       throw new Error(
@@ -693,7 +544,6 @@ async function findExistingSource(
       where: {
         filePath: media.filePath,
       },
-
       include: {
         movie: true,
         episode: true,
@@ -701,9 +551,6 @@ async function findExistingSource(
     });
   }
 
-  /**
-   * ZIP/archive entry.
-   */
   if (!media.archivePath) {
     throw new Error(
       "ARCHIVE media is missing archivePath.",
@@ -725,7 +572,6 @@ async function findExistingSource(
           media.entryPath,
       },
     },
-
     include: {
       movie: true,
       episode: true,
@@ -733,19 +579,9 @@ async function findExistingSource(
   });
 }
 
-/* -------------------------------------------------------------------------- */
-/* MediaSource creation                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Create Prisma MediaSource data.
- */
 function createMediaSourceData(
   media: ScanMedia,
 ) {
-  /**
-   * Normal filesystem file.
-   */
   if (media.sourceType === "FILE") {
     if (!media.filePath) {
       throw new Error(
@@ -759,9 +595,6 @@ function createMediaSourceData(
     };
   }
 
-  /**
-   * ZIP/archive entry.
-   */
   if (!media.archivePath) {
     throw new Error(
       "ARCHIVE media is missing archivePath.",
@@ -781,20 +614,10 @@ function createMediaSourceData(
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/* MediaSource update                                                         */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Update an existing MediaSource.
- */
 async function updateMediaSource(
   sourceId: string,
   media: ScanMedia,
 ) {
-  /**
-   * Normal filesystem file.
-   */
   if (media.sourceType === "FILE") {
     if (!media.filePath) {
       throw new Error(
@@ -806,7 +629,6 @@ async function updateMediaSource(
       where: {
         id: sourceId,
       },
-
       data: {
         type: "FILE",
         filePath: media.filePath,
@@ -818,9 +640,6 @@ async function updateMediaSource(
     return;
   }
 
-  /**
-   * ZIP/archive entry.
-   */
   if (
     !media.archivePath ||
     !media.entryPath
@@ -834,7 +653,6 @@ async function updateMediaSource(
     where: {
       id: sourceId,
     },
-
     data: {
       type: "ARCHIVE",
       filePath: null,
@@ -846,13 +664,6 @@ async function updateMediaSource(
   });
 }
 
-/* -------------------------------------------------------------------------- */
-/* Diagnostics                                                                */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Human-readable source description.
- */
 function getMediaSourceDescription(
   source: {
     type: "FILE" | "ARCHIVE";
@@ -876,10 +687,6 @@ function getMediaSourceDescription(
     .join("::");
 }
 
-/**
- * Human-readable path for scanner
- * errors and skipped entries.
- */
 function getMediaDisplayPath(
   media: ScanMedia,
 ): string {
@@ -897,4 +704,3 @@ function getMediaDisplayPath(
     .filter(Boolean)
     .join("::");
 }
-

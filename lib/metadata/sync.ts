@@ -1231,7 +1231,9 @@ async function syncEpisode(
 /* Full synchronization                                                       */
 /* -------------------------------------------------------------------------- */
 
-export async function syncMetadata(
+
+export async function syncSeriesMetadata(
+  seriesId: string,
   options: SyncOptions = {},
 ): Promise<MetadataSyncResult> {
   const {
@@ -1264,43 +1266,11 @@ export async function syncMetadata(
     errors: [],
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* Movies                                                                   */
-  /* ------------------------------------------------------------------------ */
-
-  const movies =
-    await prisma.movie.findMany({
-      select: {
-        id: true,
-        title: true,
-        year: true,
-        tmdbId: true,
-        poster: true,
-        backdrop: true,
-      },
-
-      orderBy: {
-        title: "asc",
-      },
-    });
-
-  result.movies.total =
-    movies.length;
-
-  for (const movie of movies) {
-    await syncMovie(
-      movie,
-      force,
-      result,
-    );
-  }
-
-  /* ------------------------------------------------------------------------ */
-  /* Series                                                                   */
-  /* ------------------------------------------------------------------------ */
-
   const series =
-    await prisma.series.findMany({
+    await prisma.series.findUnique({
+      where: {
+        id: seriesId,
+      },
       select: {
         id: true,
         title: true,
@@ -1309,43 +1279,31 @@ export async function syncMetadata(
         poster: true,
         backdrop: true,
       },
-
-      orderBy: [
-        {
-          title: "asc",
-        },
-        {
-          year: "asc",
-        },
-      ],
     });
 
-  result.series.total =
-    series.length;
-
-  for (const item of series) {
-    await syncSeries(
-      item,
-      force,
-      result,
+  if (!series) {
+    throw new Error(
+      `Series not found: ${seriesId}`,
     );
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Episodes                                                                 */
-  /* ------------------------------------------------------------------------ */
+  result.series.total = 1;
 
-  /**
-   * IMPORTANT:
-   *
-   * Episodes are loaded AFTER series synchronization.
-   *
-   * This means their related Series records
-   * now contain the corrected TMDB IDs.
-   */
+  await syncSeries(
+    series,
+    force,
+    result,
+  );
+
   if (syncEpisodes) {
     const episodes =
       await prisma.episode.findMany({
+        where: {
+          season: {
+            seriesId,
+          },
+        },
+
         select: {
           id: true,
           number: true,
